@@ -1,0 +1,28 @@
+#cloud-config
+hostname: ${hostname}
+package_update: true
+packages:
+  - qemu-guest-agent
+  - curl
+  - ca-certificates
+users:
+  - name: ubuntu
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+runcmd:
+  - systemctl enable qemu-guest-agent
+  - systemctl start qemu-guest-agent
+  - |
+    for attempt in $(seq 1 30); do
+      curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' sh -s - server \
+        --token '${token}' \
+        --tls-san '${node_ip}' \
+        --node-ip '${node_ip}' \
+        --write-kubeconfig-mode 644 && exit 0
+      sleep 10
+    done
+    exit 1

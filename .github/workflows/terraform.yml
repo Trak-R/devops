@@ -32,8 +32,8 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./pipelines/steps/terraform-fmt
 
-  plan:
-    name: Plan ${{ matrix.environment }}
+  validate:
+    name: Validate ${{ matrix.environment }}
     needs: fmt
     runs-on: ubuntu-latest
     strategy:
@@ -42,18 +42,91 @@ jobs:
         environment: [dev, staging, prod]
     steps:
       - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/terraform-validate
+        with:
+          directory: terraform/environments/${{ matrix.environment }}
+
+  proxmox-secrets:
+    name: Proxmox credentials
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        env:
+          ENDPOINT: ${{ secrets.PROXMOX_VE_ENDPOINT }}
+          TOKEN: ${{ secrets.PROXMOX_VE_API_TOKEN }}
+        run: |
+          if [[ -n "$ENDPOINT" && -n "$TOKEN" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Dev plan skipped. Set PROXMOX_VE_ENDPOINT and PROXMOX_VE_API_TOKEN to plan the dev cluster."
+          fi
+
+  plan:
+    name: Plan ${{ matrix.environment }}
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [staging, prod]
+    steps:
+      - uses: actions/checkout@v5
       - uses: ./pipelines/steps/terraform-plan
         with:
           directory: terraform/environments/${{ matrix.environment }}
 
+  plan-dev:
+    name: Plan dev
+    needs: [validate, proxmox-secrets]
+    if: needs.proxmox-secrets.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/terraform-plan
+        env:
+          PROXMOX_VE_ENDPOINT: ${{ secrets.PROXMOX_VE_ENDPOINT }}
+          PROXMOX_VE_API_TOKEN: ${{ secrets.PROXMOX_VE_API_TOKEN }}
+          PROXMOX_VE_INSECURE: ${{ secrets.PROXMOX_VE_INSECURE || 'true' }}
+          TF_VAR_proxmox_endpoint: ${{ secrets.PROXMOX_VE_ENDPOINT }}
+          TF_VAR_proxmox_insecure: ${{ secrets.PROXMOX_VE_INSECURE || 'true' }}
+          TF_VAR_proxmox_node_name: ${{ secrets.PROXMOX_NODE_NAME }}
+          TF_VAR_gateway: ${{ secrets.PROXMOX_GATEWAY }}
+          TF_VAR_control_plane_address: ${{ secrets.PROXMOX_CONTROL_PLANE_ADDRESS }}
+          TF_VAR_worker_addresses: ${{ secrets.PROXMOX_WORKER_ADDRESSES }}
+          TF_VAR_ssh_public_key: ${{ secrets.PROXMOX_SSH_PUBLIC_KEY }}
+        with:
+          directory: terraform/environments/dev
+
   apply:
     name: Apply ${{ inputs.environment }}
-    if: github.event_name == 'workflow_dispatch'
-    needs: plan
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      !cancelled() &&
+      needs.plan.result == 'success' &&
+      (
+        inputs.environment != 'dev' ||
+        needs.plan-dev.result == 'success' ||
+        needs.plan-dev.result == 'skipped'
+      )
+    needs: [plan, plan-dev]
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v5
       - uses: ./pipelines/steps/terraform-apply
+        env:
+          PROXMOX_VE_ENDPOINT: ${{ secrets.PROXMOX_VE_ENDPOINT }}
+          PROXMOX_VE_API_TOKEN: ${{ secrets.PROXMOX_VE_API_TOKEN }}
+          PROXMOX_VE_INSECURE: ${{ secrets.PROXMOX_VE_INSECURE || 'true' }}
+          TF_VAR_proxmox_endpoint: ${{ secrets.PROXMOX_VE_ENDPOINT }}
+          TF_VAR_proxmox_insecure: ${{ secrets.PROXMOX_VE_INSECURE || 'true' }}
+          TF_VAR_proxmox_node_name: ${{ secrets.PROXMOX_NODE_NAME }}
+          TF_VAR_gateway: ${{ secrets.PROXMOX_GATEWAY }}
+          TF_VAR_control_plane_address: ${{ secrets.PROXMOX_CONTROL_PLANE_ADDRESS }}
+          TF_VAR_worker_addresses: ${{ secrets.PROXMOX_WORKER_ADDRESSES }}
+          TF_VAR_ssh_public_key: ${{ secrets.PROXMOX_SSH_PUBLIC_KEY }}
         with:
           directory: terraform/environments/${{ inputs.environment }}

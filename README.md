@@ -9,7 +9,7 @@ Infrastructure, delivery pipelines, and Kubernetes packaging for TrakR.
 | `pipelines/steps/` | Reusable GitHub Actions steps |
 | `.github/workflows/` | Workflows that call those steps |
 
-No cloud provider is selected yet. Terraform currently standardizes naming and tags. The Helm chart renders a Deployment, Service, and optional Ingress.
+Dev Terraform provisions a Proxmox k3s cluster with one control plane and two workers. Staging and prod standardize naming and tags. The Helm chart renders a Deployment, Service, and optional Ingress.
 
 ## Local checks
 
