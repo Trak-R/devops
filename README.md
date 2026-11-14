@@ -6,10 +6,11 @@ Infrastructure, delivery pipelines, and Kubernetes packaging for TrakR.
 | --- | --- |
 | `terraform/` | Per-environment stacks and reusable modules |
 | `helm/charts/trakr/` | Helm chart for the TrakR application |
+| `helm/charts/adsbtracker/` | Helm chart for a single Tracker Hub pod |
 | `pipelines/steps/` | Reusable GitHub Actions steps |
 | `.github/workflows/` | Workflows that call those steps |
 
-Dev Terraform provisions a Proxmox k3s cluster with one control plane and two workers. Staging and prod standardize naming and tags. The Helm chart renders a Deployment, Service, and optional Ingress.
+Dev Terraform provisions a Proxmox k3s cluster with one control plane and two workers. Staging and prod standardize naming and tags. `trakr` renders a Deployment, Service, and optional Ingress. `adsbtracker` renders one StatefulSet replica, a Service, persistent volumes, and an optional Ingress.
 
 ## Local checks
 
@@ -20,4 +21,4 @@ make helm-lint
 make helm-template
 ```
 
-Terraform 1.17.2 and Helm 3.22.1 match the versions installed in CI.
+Terraform 1.17.2 and Helm 3.22.1 match the versions installed in CI. `make helm-lint` and `make helm-template` check `helm/charts/trakr`. Lint `adsbtracker` with the commands in `helm/README.md`.
