@@ -1,0 +1,7 @@
+apiVersion: v2
+name: adsbtracker
+description: Single-replica Tracker Hub for ADS-B BaseStation Reader
+type: application
+version: 0.1.0
+appVersion: "2.39.0"
+kubeVersion: ">=1.25.0-0"

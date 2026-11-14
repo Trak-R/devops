@@ -1,0 +1,24 @@
+Tracker Hub is installed as a single pod. It cannot be scaled: SQLite, the write spool, and SignalR all live in that process.
+
+Feed: {{ .Values.feed.host }}:{{ .Values.feed.port }}
+Image: {{ include "adsbtracker.image" . }}
+
+The database, write spool, and log file share the data volume. Tracking profiles use the profiles volume. Keep both on a block ReadWriteOnce class. SQLite corrupts on NFS and Azure Files. Back up both volumes together before an upgrade or migration. Uninstall leaves the volume claims in place.
+
+{{- if .Values.ingress.enabled }}
+
+Open https://{{ .Values.ingress.host }}/ after the ingress certificate is ready.
+Tracker Hub does not authenticate users. Enforce access control on the ingress.
+{{- else }}
+
+The Service is ClusterIP only. Port-forward from a trusted client:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "adsbtracker.fullname" . }} 8104:80
+
+Then open http://127.0.0.1:8104/
+{{- end }}
+
+Publish an image from this repository before install:
+
+  docker build -f docker/Dockerfile.source -t {{ include "adsbtracker.image" . }} .
+  docker push {{ include "adsbtracker.image" . }}

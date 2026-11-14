@@ -1,0 +1,76 @@
+# Image built from docker/Dockerfile.source. repository and tag are required.
+# There is no default image: the published Docker Hub tag does not include /health.
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+  # The supported runtime is linux/amd64. Set false after publishing a native image for another architecture.
+  pinAmd64: true
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Hostname or address of a BaseStation-compatible TCP feed reachable from the pod.
+# host.docker.internal is not available in Kubernetes.
+feed:
+  host: ""
+  port: 30003
+
+# Leave existingSecret empty to create a Secret from the values below.
+# An existing Secret must contain these keys, which may be empty:
+#   ApplicationSettings__ApiServices__0__Key  (AeroDataBox)
+#   ApplicationSettings__ApiServices__1__Key  (AirLabs)
+#   ApplicationSettings__ApiServices__2__Key  (CheckWX)
+#   ApplicationSettings__ApiServices__3__Key  (SkyLink)
+#   Mapbox__AccessToken
+existingSecret: ""
+secrets:
+  aeroDataBoxKey: ""
+  airLabsKey: ""
+  checkWxKey: ""
+  skyLinkKey: ""
+  mapboxToken: ""
+
+# Two ReadWriteOnce claims. Leave storageClass empty to use the cluster default.
+# Use a block volume. SQLite corrupts on NFS and Azure Files.
+# Replica count is fixed at 1 because the database, spool, and SignalR hub are in-process.
+persistence:
+  storageClass: ""
+  data:
+    size: 5Gi
+    mountPath: /var/opt/adsbtracker
+  profiles:
+    size: 100Mi
+    mountPath: /var/opt/adsbtrackingprofiles
+
+serviceAccount:
+  create: true
+  name: ""
+
+# Above ApplicationSettings.StopTimeout (10s) so SIGTERM can flush the spool.
+terminationGracePeriodSeconds: 30
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# Tracker Hub has no user authentication. Keep the Service private, or enable
+# ingress and enforce access control on the proxy. TLS terminates at the ingress.
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  annotations: {}
+  tls:
+    enabled: true
+    secretName: ""

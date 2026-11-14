@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "adsbtracker.fullname" . }}
+  labels:
+    {{- include "adsbtracker.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    {{- include "adsbtracker.selectorLabels" . | nindent 4 }}

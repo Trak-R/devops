@@ -1,0 +1,8 @@
+image:
+  repository: registry.example/adsbtracker
+  tag: "2.39.0"
+feed:
+  host: dump1090.example
+  port: 30003
+ingress:
+  enabled: false
