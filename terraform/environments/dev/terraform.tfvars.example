@@ -14,5 +14,6 @@ bridge               = "vmbr0"
 
 gateway               = "192.168.1.1"
 control_plane_address = "192.168.1.40/24"
-worker_addresses      = ["192.168.1.41/24", "192.168.1.42/24"]
-ssh_public_key        = "ssh-ed25519 AAAA... you@host"
+# Add a CIDR here later to provision a worker, for example ["192.168.1.41/24"].
+worker_addresses = []
+ssh_public_key   = "ssh-ed25519 AAAA... you@host"

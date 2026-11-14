@@ -5,12 +5,12 @@ terraform/
   modules/stack/          shared naming and tags
   modules/k3s-cluster/    Proxmox VMs and k3s cloud-init
   environments/
-    dev/                  one control plane and two workers
+    dev/                  one control plane and optional workers
     staging/              names and tags only
     prod/                 names and tags only
 ```
 
-Dev calls `modules/k3s-cluster`. That module downloads the Ubuntu 24.04 cloud image, builds a template, and clones one control-plane VM and two worker VMs. Cloud-init installs k3s `v1.37.2+k3s1`. Workers join `https://<control-plane-ip>:6443` with a token Terraform generates, and retry until the API answers. Staging and prod still only publish a name prefix and tags.
+Dev calls `modules/k3s-cluster`. That module downloads the Ubuntu 24.04 cloud image, builds a template, and clones one control-plane VM. Cloud-init installs k3s `v1.37.2+k3s1`. The server has no control-plane taint, so it stays schedulable with or without workers. `worker_addresses` lists the worker CIDRs. An empty list creates no worker VMs. Each worker is named from its IP and joins `https://<control-plane-ip>:6443` with a token Terraform generates. Adding or removing an address changes only that worker. Staging and prod still only publish a name prefix and tags.
 
 ## Proxmox
 
@@ -26,7 +26,9 @@ The endpoint is the API URL, including the port, for example `https://proxmox.ex
 
 The token needs these privileges on the target path: `VM.Allocate`, `VM.Clone`, `VM.Config.*`, `VM.PowerMgmt`, `Datastore.Allocate`, `Datastore.AllocateTemplate`, `SDN.Use`, `Sys.Audit`, and `Sys.Modify`. The image download uses the Proxmox download API, which requires the two `Sys` privileges. The image datastore must allow Import. The snippet datastore must allow Snippets. The k3s token is stored in Terraform state and in those snippets, so keep state private.
 
-Defaults are 2 vCPU and 4 GB RAM. The control plane disk is 32 GB and each worker disk is 40 GB.
+The module defaults are 2 vCPU and 4 GB RAM. Dev sets the control plane to 4 vCPU and 8 GB. Changing those values updates the existing VM in place and may reboot it. The control plane disk is 32 GB and each worker disk is 40 GB.
+
+Workers that were already applied under the old index keys `1` and `2` are replaced once, because each worker is now identified by its CIDR. The control plane is not replaced by that change.
 
 ## Kubeconfig
 
@@ -44,7 +46,7 @@ Replace `127.0.0.1` in that file with the control-plane address from the `api_ur
 
 ## Apply
 
-Pull requests validate every environment. They plan staging and prod. Dev plan calls the Proxmox API, so it runs only when the repository secrets `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` are set. A real dev plan also needs `PROXMOX_NODE_NAME`, `PROXMOX_GATEWAY`, `PROXMOX_CONTROL_PLANE_ADDRESS`, `PROXMOX_WORKER_ADDRESSES` (a JSON list of two CIDRs), and `PROXMOX_SSH_PUBLIC_KEY`. `PROXMOX_VE_INSECURE` is optional and defaults to `true`.
+Pull requests validate every environment. They plan staging and prod. Dev plan calls the Proxmox API, so it runs only when the repository secrets `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN` are set. A real dev plan also needs `PROXMOX_NODE_NAME`, `PROXMOX_GATEWAY`, `PROXMOX_CONTROL_PLANE_ADDRESS`, and `PROXMOX_SSH_PUBLIC_KEY`. `PROXMOX_WORKER_ADDRESSES` is an optional JSON list of worker CIDRs and defaults to `[]`. `PROXMOX_VE_INSECURE` is optional and defaults to `true`.
 
 Apply is manual:
 

@@ -4,11 +4,11 @@ locals {
   ssh_public_key     = trimspace(var.ssh_public_key)
 
   workers = {
-    for index, address in var.worker_addresses :
-    tostring(index + 1) => {
+    for address in var.worker_addresses :
+    address => {
       address = address
       ip      = split("/", address)[0]
-      name    = "${var.name_prefix}-k3s-worker-${index + 1}"
+      name    = "${var.name_prefix}-k3s-worker-${replace(split("/", address)[0], ".", "-")}"
     }
   }
 }

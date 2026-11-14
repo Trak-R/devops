@@ -95,7 +95,7 @@ jobs:
           TF_VAR_proxmox_node_name: ${{ secrets.PROXMOX_NODE_NAME }}
           TF_VAR_gateway: ${{ secrets.PROXMOX_GATEWAY }}
           TF_VAR_control_plane_address: ${{ secrets.PROXMOX_CONTROL_PLANE_ADDRESS }}
-          TF_VAR_worker_addresses: ${{ secrets.PROXMOX_WORKER_ADDRESSES }}
+          TF_VAR_worker_addresses: ${{ secrets.PROXMOX_WORKER_ADDRESSES || '[]' }}
           TF_VAR_ssh_public_key: ${{ secrets.PROXMOX_SSH_PUBLIC_KEY }}
         with:
           directory: terraform/environments/dev
@@ -126,7 +126,7 @@ jobs:
           TF_VAR_proxmox_node_name: ${{ secrets.PROXMOX_NODE_NAME }}
           TF_VAR_gateway: ${{ secrets.PROXMOX_GATEWAY }}
           TF_VAR_control_plane_address: ${{ secrets.PROXMOX_CONTROL_PLANE_ADDRESS }}
-          TF_VAR_worker_addresses: ${{ secrets.PROXMOX_WORKER_ADDRESSES }}
+          TF_VAR_worker_addresses: ${{ secrets.PROXMOX_WORKER_ADDRESSES || '[]' }}
           TF_VAR_ssh_public_key: ${{ secrets.PROXMOX_SSH_PUBLIC_KEY }}
         with:
           directory: terraform/environments/${{ inputs.environment }}

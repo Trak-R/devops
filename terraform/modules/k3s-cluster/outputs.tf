@@ -9,13 +9,13 @@ output "control_plane_address" {
 }
 
 output "worker_names" {
-  description = "Proxmox names of the k3s worker VMs."
-  value       = [for worker in proxmox_virtual_environment_vm.worker : worker.name]
+  description = "Proxmox names of the k3s worker VMs, sorted by address."
+  value       = [for address in sort(keys(local.workers)) : proxmox_virtual_environment_vm.worker[address].name]
 }
 
 output "worker_addresses" {
-  description = "Static IPv4 addresses of the workers, without the prefix length."
-  value       = [for worker in local.workers : worker.ip]
+  description = "Static IPv4 addresses of the workers, without the prefix length, sorted by address."
+  value       = [for address in sort(keys(local.workers)) : local.workers[address].ip]
 }
 
 output "api_url" {

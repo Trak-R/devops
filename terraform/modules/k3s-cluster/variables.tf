@@ -59,12 +59,29 @@ variable "control_plane_address" {
 }
 
 variable "worker_addresses" {
-  description = "Static IPv4 CIDRs for the two workers."
+  description = "Static IPv4 CIDRs for the worker nodes. An empty list provisions only the control plane."
   type        = list(string)
+  default     = []
 
   validation {
-    condition     = length(var.worker_addresses) == 2 && alltrue([for address in var.worker_addresses : can(cidrhost(address, 0))])
-    error_message = "worker_addresses must contain exactly two IPv4 CIDRs."
+    condition = alltrue([
+      for address in var.worker_addresses : can(cidrhost(address, 0))
+    ])
+    error_message = "worker_addresses must contain only IPv4 CIDRs."
+  }
+
+  validation {
+    condition = length(distinct([
+      for address in var.worker_addresses : split("/", address)[0]
+    ])) == length(var.worker_addresses)
+    error_message = "worker_addresses must use a unique IPv4 address for each worker."
+  }
+
+  validation {
+    condition = !contains([
+      for address in var.worker_addresses : split("/", address)[0]
+    ], split("/", var.control_plane_address)[0])
+    error_message = "worker_addresses must not include the control-plane address."
   }
 }
 

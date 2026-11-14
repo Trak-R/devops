@@ -55,8 +55,9 @@ variable "control_plane_address" {
 }
 
 variable "worker_addresses" {
-  description = "Static IPv4 CIDRs for the two workers."
+  description = "Static IPv4 CIDRs for the worker nodes. An empty list provisions only the control plane."
   type        = list(string)
+  default     = []
 }
 
 variable "ssh_public_key" {
