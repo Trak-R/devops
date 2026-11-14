@@ -43,10 +43,21 @@ jobs:
         with:
           values: helm/charts/trakr/values-${{ matrix.environment }}.yaml
 
+  lint-homenet:
+    name: Lint homenet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/helm-lint
+        with:
+          chart: helm/charts/homenet
+
   deploy:
     name: Deploy ${{ inputs.environment }}
     if: github.event_name == 'workflow_dispatch'
-    needs: lint
+    needs:
+      - lint
+      - lint-homenet
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:

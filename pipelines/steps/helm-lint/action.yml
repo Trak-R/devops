@@ -34,4 +34,5 @@ runs:
         fi
         helm dependency build "${chart}"
         helm lint "${chart}" "${args[@]}"
-        helm template trakr "${chart}" "${args[@]}" >/dev/null
+        release="$(basename "${chart}")"
+        helm template "${release}" "${chart}" "${args[@]}" >/dev/null

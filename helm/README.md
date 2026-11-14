@@ -28,6 +28,18 @@ Redpanda runs one broker with TLS, external access, and Console turned off. Its 
 
 Deploy runs only from the **Helm** workflow dispatch, and that workflow installs this chart. Add a base64-encoded kubeconfig as the `KUBECONFIG_B64` secret on the target GitHub Environment before the first deploy. The workflow does not create that secret.
 
+## homenet
+
+`charts/homenet` installs the HomeNet platform: Traefik, Argo CD, Cloudflare Tunnel, Headlamp, and OpenEBS Local PV LVM. The tunnel forwards `*.example.com` to Traefik. Applications publish hostnames with Ingress objects.
+
+```bash
+helm dependency build charts/homenet
+helm lint charts/homenet --values charts/homenet/values.yaml
+helm template homenet charts/homenet --values charts/homenet/values.yaml
+```
+
+Install, the tunnel Secret, the k3s Traefik flag, and the `homenet` volume group are described in `charts/homenet/README.md`. The Helm workflow lints this chart and does not install it.
+
 ## adsbtracker
 
 `charts/adsbtracker` packages Tracker Hub as one replica. Observations stay in SQLite, so the database, write spool, and tracking profiles sit on ReadWriteOnce volumes. `image.repository`, `image.tag`, and `feed.host` are required. Lint fixtures in `charts/adsbtracker/ci/` supply those values.

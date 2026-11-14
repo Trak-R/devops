@@ -1,0 +1,28 @@
+apiVersion: v2
+name: homenet
+description: HomeNet platform services
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.25.0-0"
+dependencies:
+  - name: traefik
+    version: "42.4.0"
+    repository: https://traefik.github.io/charts
+    condition: components.traefik
+  - name: argo-cd
+    version: "10.18.0"
+    repository: https://argoproj.github.io/argo-helm
+    condition: components.argocd
+  - name: cloudflare-tunnel
+    version: "0.3.2"
+    repository: https://cloudflare.github.io/helm-charts
+    condition: components.cloudflareTunnel
+  - name: headlamp
+    version: "0.46.0"
+    repository: https://kubernetes-sigs.github.io/headlamp/
+    condition: components.headlamp
+  - name: lvm-localpv
+    version: "1.10.1"
+    repository: https://openebs.github.io/lvm-localpv
+    condition: components.openebs

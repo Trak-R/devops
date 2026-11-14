@@ -1,0 +1,72 @@
+# Parent flags. These are not passed into the subcharts.
+components:
+  traefik: true
+  argocd: true
+  cloudflareTunnel: true
+  headlamp: true
+  openebs: true
+
+# ClusterIP only. Cloudflare Tunnel is the public entry.
+traefik:
+  fullnameOverride: homenet-traefik
+  deployment:
+    replicas: 1
+  ingressClass:
+    enabled: true
+    isDefaultClass: true
+    name: traefik
+  service:
+    spec:
+      type: ClusterIP
+
+# Ingress is served by Traefik. The server speaks HTTP because the tunnel terminates TLS.
+argo-cd:
+  fullnameOverride: homenet-argocd
+  global:
+    domain: argocd.example.com
+  configs:
+    params:
+      server.insecure: true
+  server:
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      hostname: argocd.example.com
+      tls: false
+
+headlamp:
+  fullnameOverride: homenet-headlamp
+  config:
+    inCluster: true
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - host: headlamp.example.com
+        paths:
+          - path: /
+            type: ImplementationSpecific
+
+# One wildcard rule. Apps publish hostnames with Ingress objects.
+# The tunnel chart appends a catch-all that returns HTTP 404.
+# Create Secret homenet-tunnel-credentials with key credentials.json before install.
+cloudflare-tunnel:
+  replicaCount: 1
+  cloudflare:
+    account: ""
+    tunnelName: ""
+    tunnelId: ""
+    secret: ""
+    secretName: homenet-tunnel-credentials
+    ingress:
+      - hostname: "*.example.com"
+        service: http://homenet-traefik.homenet.svc:80
+
+# OpenEBS Local PV LVM uses the chart defaults, including kubelet dir /var/lib/kubelet/.
+openebs:
+  volumeGroup: homenet
+  storageClass:
+    name: openebs-lvmpv
+    defaultClass: false

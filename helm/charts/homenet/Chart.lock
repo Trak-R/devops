@@ -1,0 +1,18 @@
+dependencies:
+- name: traefik
+  repository: https://traefik.github.io/charts
+  version: 42.4.0
+- name: argo-cd
+  repository: https://argoproj.github.io/argo-helm
+  version: 10.18.0
+- name: cloudflare-tunnel
+  repository: https://cloudflare.github.io/helm-charts
+  version: 0.3.2
+- name: headlamp
+  repository: https://kubernetes-sigs.github.io/headlamp/
+  version: 0.46.0
+- name: lvm-localpv
+  repository: https://openebs.github.io/lvm-localpv
+  version: 1.10.1
+digest: sha256:8ff02dd9ab84b86e51a0c4bb8538025d691824d6b99743686c23d12a8148dfa2
+generated: "2026-11-14T16:31:47.292981-05:00"
