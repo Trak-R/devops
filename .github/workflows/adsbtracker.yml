@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   pipeline:
-    name: Scan, push, and CVE scan
+    name: Test, scan, push, and CVE scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

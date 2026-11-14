@@ -22,7 +22,7 @@ Reusable GitHub Actions composite steps. Workflows in this repository call them 
 
 ## adsbtracker
 
-`pipelines/adsbtracker` runs `sonarqube`, then `container-push`, then `cve-scan`. SonarQube runs first, so a failed quality gate stops the job before the image is pushed. The Dockerfile is `docker/Dockerfile.source` and the build context is the repository root. The image is `ghcr.io/<owner>/<repo>:<commit sha>`, lowercased. Every call publishes an image, including pull requests. The tag is the caller commit SHA.
+`pipelines/adsbtracker` installs .NET SDK 9.0.304 and runs `dotnet test` on `src/BaseStationReader.sln` first. A failed test stops the job before `sonarqube`, `container-push`, and `cve-scan`. A failed SonarQube quality gate still stops the job before the image is pushed. The Dockerfile is `docker/Dockerfile.source` and the build context is the repository root. The image is `ghcr.io/<owner>/<repo>:<commit sha>`, lowercased. Every call publishes an image, including pull requests. The tag is the caller commit SHA.
 
 The adsbtracker repository calls `.github/workflows/adsbtracker.yml`. That workflow requires `SONAR_TOKEN` and `SONAR_HOST_URL`. It does not skip SonarQube when they are missing. The caller must grant `contents: read` and `packages: write`. A called workflow cannot raise those permissions.
 

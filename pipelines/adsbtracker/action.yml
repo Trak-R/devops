@@ -1,5 +1,5 @@
 name: adsbtracker
-description: Scan Tracker Hub, push its image, and fail on fixed high and critical CVEs.
+description: Test Tracker Hub, scan it, push its image, and fail on fixed high and critical CVEs.
 
 inputs:
   sonar-token:
@@ -25,6 +25,20 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.304
+
+    - name: Run unit tests and generate code coverage
+      shell: bash
+      run: >
+        dotnet test src/BaseStationReader.sln
+        --settings src/BaseStationReader.Tests/mstest.runsettings
+        /p:CollectCoverage=true
+        /p:CoverletOutput=coverage/
+        /p:CoverletOutputFormat=lcov
+
     - name: SonarQube
       uses: $/pipelines/steps/sonarqube
       with:
