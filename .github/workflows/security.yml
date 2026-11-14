@@ -46,9 +46,35 @@ jobs:
           token: ${{ secrets.SONAR_TOKEN }}
           host-url: ${{ secrets.SONAR_HOST_URL }}
 
+  container:
+    name: Build and push image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.push.outputs.image }}
+      pushed: ${{ steps.check.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        shell: bash
+        run: |
+          if [[ -f Dockerfile ]]; then
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            echo "No Dockerfile. Image publish skipped."
+          fi
+      - id: push
+        if: steps.check.outputs.pushed == 'true'
+        uses: ./pipelines/steps/container-push
+
   cve:
     name: CVE scan
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: container
+    if: needs.container.outputs.pushed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,3 +82,5 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./pipelines/steps/cve-scan
+        with:
+          image: ${{ needs.container.outputs.image }}
