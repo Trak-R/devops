@@ -1,0 +1,58 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  sonar-secrets:
+    name: SonarQube credentials
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        env:
+          TOKEN: ${{ secrets.SONAR_TOKEN }}
+          HOST: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          if [[ -n "$TOKEN" && -n "$HOST" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "SonarQube skipped. Set SONAR_TOKEN and SONAR_HOST_URL."
+          fi
+
+  sonarqube:
+    name: SonarQube
+    needs: sonar-secrets
+    if: needs.sonar-secrets.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./pipelines/steps/sonarqube
+        with:
+          token: ${{ secrets.SONAR_TOKEN }}
+          host-url: ${{ secrets.SONAR_HOST_URL }}
+
+  cve:
+    name: CVE scan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/cve-scan

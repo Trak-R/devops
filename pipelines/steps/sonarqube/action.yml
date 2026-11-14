@@ -1,0 +1,46 @@
+name: SonarQube
+description: Scan the workspace with SonarQube and fail when the quality gate fails.
+
+inputs:
+  token:
+    description: SonarQube token.
+    required: true
+  host-url:
+    description: SonarQube server URL.
+    required: true
+  project-key:
+    description: SonarQube project key. Defaults to the repository name with slashes replaced by underscores.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve project key
+      id: project
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ -n "${{ inputs.project-key }}" ]]; then
+          key="${{ inputs.project-key }}"
+        else
+          key="${GITHUB_REPOSITORY//\//_}"
+        fi
+        echo "key=${key}" >> "$GITHUB_OUTPUT"
+
+    - name: SonarQube scan
+      uses: SonarSource/sonarqube-scan-action@v8.5.0
+      env:
+        SONAR_TOKEN: ${{ inputs.token }}
+        SONAR_HOST_URL: ${{ inputs.host-url }}
+      with:
+        args: -Dsonar.projectKey=${{ steps.project.outputs.key }}
+
+    - name: SonarQube quality gate
+      uses: SonarSource/sonarqube-quality-gate-action@v1.2.1
+      env:
+        SONAR_TOKEN: ${{ inputs.token }}
+        SONAR_HOST_URL: ${{ inputs.host-url }}
+      with:
+        pollingTimeoutSec: 300
+        scanMetadataReportFile: ${{ github.workspace }}/.scannerwork/report-task.txt
