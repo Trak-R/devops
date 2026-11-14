@@ -1,0 +1,5 @@
+replicaCount: 1
+
+ingress:
+  enabled: false
+  host: dev.trakr.example.com

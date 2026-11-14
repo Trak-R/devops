@@ -1,0 +1,36 @@
+name: Helm lint
+description: Lint a Helm chart and render it with an optional values file.
+
+inputs:
+  chart:
+    description: Chart directory, relative to the repository root.
+    required: false
+    default: helm/charts/trakr
+  values:
+    description: Optional values file, relative to the repository root. values.yaml is always included.
+    required: false
+    default: ""
+  helm-version:
+    description: Helm version to install.
+    required: false
+    default: "v3.22.1"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Helm
+      uses: azure/setup-helm@v5
+      with:
+        version: ${{ inputs.helm-version }}
+
+    - name: Lint and template
+      shell: bash
+      run: |
+        set -euo pipefail
+        chart="${GITHUB_WORKSPACE}/${{ inputs.chart }}"
+        args=(--values "${chart}/values.yaml")
+        if [[ -n "${{ inputs.values }}" ]]; then
+          args+=(--values "${GITHUB_WORKSPACE}/${{ inputs.values }}")
+        fi
+        helm lint "${chart}" "${args[@]}"
+        helm template trakr "${chart}" "${args[@]}" >/dev/null

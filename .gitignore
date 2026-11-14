@@ -1,0 +1,22 @@
+.DS_Store
+.idea/
+.vscode/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.tfstate.lock.info
+*.tfplan
+tfplan
+*.tfvars
+!*.tfvars.example
+
+# Helm
+*.tgz

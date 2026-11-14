@@ -1,0 +1,25 @@
+name: Terraform fmt
+description: Check that Terraform files are formatted.
+
+inputs:
+  directory:
+    description: Directory to check, relative to the repository root.
+    required: false
+    default: terraform
+  terraform-version:
+    description: Terraform version to install.
+    required: false
+    default: "1.17.2"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
+
+    - name: Check formatting
+      shell: bash
+      run: terraform fmt -check -recursive "${GITHUB_WORKSPACE}/${{ inputs.directory }}"

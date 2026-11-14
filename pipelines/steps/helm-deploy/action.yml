@@ -1,0 +1,48 @@
+name: Helm deploy
+description: Upgrade or install a Helm release using the current kubeconfig.
+
+inputs:
+  chart:
+    description: Chart directory, relative to the repository root.
+    required: false
+    default: helm/charts/trakr
+  release:
+    description: Helm release name.
+    required: false
+    default: trakr
+  namespace:
+    description: Kubernetes namespace.
+    required: true
+  values:
+    description: Optional values file, relative to the repository root. values.yaml is always included.
+    required: false
+    default: ""
+  helm-version:
+    description: Helm version to install.
+    required: false
+    default: "v3.22.1"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Helm
+      uses: azure/setup-helm@v5
+      with:
+        version: ${{ inputs.helm-version }}
+
+    - name: Upgrade or install
+      shell: bash
+      run: |
+        set -euo pipefail
+        chart="${GITHUB_WORKSPACE}/${{ inputs.chart }}"
+        args=(
+          upgrade --install "${{ inputs.release }}" "${chart}"
+          --namespace "${{ inputs.namespace }}"
+          --create-namespace
+          --wait
+          --values "${chart}/values.yaml"
+        )
+        if [[ -n "${{ inputs.values }}" ]]; then
+          args+=(--values "${GITHUB_WORKSPACE}/${{ inputs.values }}")
+        fi
+        helm "${args[@]}"

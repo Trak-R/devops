@@ -1,0 +1,28 @@
+name: Terraform apply
+description: Initialize a Terraform environment and apply it. Gate this step with a GitHub Environment.
+
+inputs:
+  directory:
+    description: Environment directory, relative to the repository root.
+    required: true
+  terraform-version:
+    description: Terraform version to install.
+    required: false
+    default: "1.17.2"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
+
+    - name: Init and apply
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.directory }}
+      run: |
+        set -euo pipefail
+        terraform init -input=false
+        terraform apply -input=false -auto-approve -lock-timeout=5m

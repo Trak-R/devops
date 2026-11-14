@@ -1,0 +1,59 @@
+name: Terraform
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "pipelines/steps/terraform-*/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to apply
+        type: choice
+        required: true
+        options:
+          - dev
+          - staging
+          - prod
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/terraform-fmt
+
+  plan:
+    name: Plan ${{ matrix.environment }}
+    needs: fmt
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, staging, prod]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/terraform-plan
+        with:
+          directory: terraform/environments/${{ matrix.environment }}
+
+  apply:
+    name: Apply ${{ inputs.environment }}
+    if: github.event_name == 'workflow_dispatch'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/terraform-apply
+        with:
+          directory: terraform/environments/${{ inputs.environment }}

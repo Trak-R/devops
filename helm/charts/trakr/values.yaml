@@ -1,0 +1,50 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/trak-r/trakr
+  # Empty uses the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+  containerPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: chart-example.local
+  path: /
+  pathType: Prefix
+
+probes:
+  enabled: true
+  path: /healthz
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

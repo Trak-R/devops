@@ -1,0 +1,29 @@
+name: Terraform plan
+description: Initialize a Terraform environment, validate it, and write a plan.
+
+inputs:
+  directory:
+    description: Environment directory, relative to the repository root.
+    required: true
+  terraform-version:
+    description: Terraform version to install.
+    required: false
+    default: "1.17.2"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
+
+    - name: Init, validate, and plan
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.directory }}
+      run: |
+        set -euo pipefail
+        terraform init -input=false
+        terraform validate
+        terraform plan -input=false -lock-timeout=5m -out=tfplan

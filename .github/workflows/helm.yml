@@ -1,0 +1,71 @@
+name: Helm
+
+on:
+  pull_request:
+    paths:
+      - "helm/**"
+      - "pipelines/steps/helm-*/**"
+      - ".github/workflows/helm.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        type: choice
+        required: true
+        options:
+          - dev
+          - staging
+          - prod
+      namespace:
+        description: Kubernetes namespace
+        type: string
+        required: false
+        default: trakr
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, staging, prod]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./pipelines/steps/helm-lint
+        with:
+          values: helm/charts/trakr/values-${{ matrix.environment }}.yaml
+
+  deploy:
+    name: Deploy ${{ inputs.environment }}
+    if: github.event_name == 'workflow_dispatch'
+    needs: lint
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure kubeconfig
+        shell: bash
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${KUBECONFIG_B64}" ]]; then
+            echo "Add a KUBECONFIG_B64 secret to the ${{ inputs.environment }} GitHub Environment."
+            exit 1
+          fi
+          mkdir -p "${HOME}/.kube"
+          echo "${KUBECONFIG_B64}" | base64 -d > "${HOME}/.kube/config"
+
+      - uses: ./pipelines/steps/helm-deploy
+        with:
+          namespace: ${{ inputs.namespace }}
+          values: helm/charts/trakr/values-${{ inputs.environment }}.yaml
