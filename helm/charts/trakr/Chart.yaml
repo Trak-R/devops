@@ -2,5 +2,15 @@ apiVersion: v2
 name: trakr
 description: Helm chart for the TrakR application
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+dependencies:
+  - name: redpanda
+    version: "26.2.6"
+    repository: https://charts.redpanda.com
+    condition: components.redpanda
+  - name: connect
+    version: "3.2.36"
+    repository: https://charts.redpanda.com
+    condition: components.connect

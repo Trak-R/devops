@@ -18,12 +18,14 @@ terraform-validate:
 	done
 
 helm-lint:
+	helm dependency build $(CHART)
 	@for values in $(HELM_VALUES); do \
 		echo "==> $$values"; \
 		helm lint $(CHART) --values $(CHART)/values.yaml --values $$values; \
 	done
 
 helm-template:
+	helm dependency build $(CHART)
 	@for values in $(HELM_VALUES); do \
 		echo "==> $$values"; \
 		helm template trakr $(CHART) --values $(CHART)/values.yaml --values $$values >/dev/null; \

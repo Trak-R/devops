@@ -40,3 +40,28 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{- define "trakr.postgresql.fullname" -}}
+{{- printf "%s-postgresql" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "trakr.postgresql.secretName" -}}
+{{- if .Values.postgresql.auth.existingSecret }}
+{{- .Values.postgresql.auth.existingSecret }}
+{{- else }}
+{{- include "trakr.postgresql.fullname" . }}
+{{- end }}
+{{- end }}
+
+{{- define "trakr.postgresql.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "trakr.postgresql.fullname" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "trakr.postgresql.labels" -}}
+helm.sh/chart: {{ include "trakr.chart" . }}
+{{ include "trakr.postgresql.selectorLabels" . }}
+app.kubernetes.io/component: postgresql
+app.kubernetes.io/version: {{ .Values.postgresql.image.tag | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}

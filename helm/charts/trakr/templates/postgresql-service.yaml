@@ -1,0 +1,18 @@
+{{- if .Values.components.postgresql }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trakr.postgresql.fullname" . }}
+  labels:
+    {{- include "trakr.postgresql.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+      protocol: TCP
+  selector:
+    {{- include "trakr.postgresql.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -11,7 +11,7 @@ Infrastructure, delivery pipelines, and Kubernetes packaging for TrakR.
 | `pipelines/adsbtracker/` | Pipeline for the adsbtracker repository |
 | `.github/workflows/` | Workflows that call those steps and pipelines |
 
-Dev Terraform provisions a Proxmox k3s cluster with one control plane and two workers. Staging and prod standardize naming and tags. `trakr` renders a Deployment, Service, and optional Ingress. `adsbtracker` renders one StatefulSet replica, a Service, persistent volumes, and an optional Ingress.
+Dev Terraform provisions a Proxmox k3s cluster with one control plane and two workers. Staging and prod standardize naming and tags. `trakr` renders the application plus one Redpanda broker, Redpanda Connect, and one Postgres instance. `adsbtracker` renders one StatefulSet replica, a Service, persistent volumes, and an optional Ingress.
 
 ## Local checks
 

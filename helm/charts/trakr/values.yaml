@@ -48,3 +48,64 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Parent flags. These are not passed into the subcharts.
+components:
+  redpanda: true
+  connect: true
+  postgresql: true
+
+# Official Redpanda chart. One broker, in-cluster only, TLS and Console off.
+# Resource and volume defaults come from that chart (1 core, 2.5Gi memory, 20Gi volume).
+# That chart names its Service after the Helm release. This chart's release is
+# "trakr", which is also the application Service, so the broker name is pinned here.
+redpanda:
+  fullnameOverride: trakr-redpanda
+  statefulset:
+    replicas: 1
+  tls:
+    enabled: false
+  external:
+    enabled: false
+  console:
+    enabled: false
+
+# Official Redpanda Connect chart. Replace config with a real pipeline.
+# This placeholder stays running so the pod does not exit.
+# nameOverride keeps the Service at <release>-connect. The chart's own default
+# name is redpanda-connect.
+connect:
+  nameOverride: connect
+  config: |
+    input:
+      generate:
+        interval: 1s
+        count: 0
+        mapping: root.message = "trakr connect placeholder"
+    output:
+      stdout: {}
+
+# Single Postgres instance using the official image. PostgreSQL 17 keeps
+# PGDATA at /var/lib/postgresql/data.
+postgresql:
+  image:
+    repository: postgres
+    tag: "17"
+    pullPolicy: IfNotPresent
+  auth:
+    username: trakr
+    database: trakr
+    # Empty generates a password on install and keeps it across upgrades.
+    # existingSecret must contain POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB.
+    # username and database above must match that Secret; probes use these values.
+    password: ""
+    existingSecret: ""
+  persistence:
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
