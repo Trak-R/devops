@@ -8,7 +8,8 @@ Infrastructure, delivery pipelines, and Kubernetes packaging for TrakR.
 | `helm/charts/trakr/` | Helm chart for the TrakR application |
 | `helm/charts/adsbtracker/` | Helm chart for a single Tracker Hub pod |
 | `pipelines/steps/` | Reusable GitHub Actions steps |
-| `.github/workflows/` | Workflows that call those steps |
+| `pipelines/adsbtracker/` | Pipeline for the adsbtracker repository |
+| `.github/workflows/` | Workflows that call those steps and pipelines |
 
 Dev Terraform provisions a Proxmox k3s cluster with one control plane and two workers. Staging and prod standardize naming and tags. `trakr` renders a Deployment, Service, and optional Ingress. `adsbtracker` renders one StatefulSet replica, a Service, persistent volumes, and an optional Ingress.
 

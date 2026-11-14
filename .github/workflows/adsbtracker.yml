@@ -1,0 +1,26 @@
+name: adsbtracker
+
+on:
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      SONAR_HOST_URL:
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pipeline:
+    name: Scan, push, and CVE scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: $/pipelines/adsbtracker
+        with:
+          sonar-token: ${{ secrets.SONAR_TOKEN }}
+          sonar-host-url: ${{ secrets.SONAR_HOST_URL }}

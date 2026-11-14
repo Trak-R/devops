@@ -1,0 +1,44 @@
+name: adsbtracker
+description: Scan Tracker Hub, push its image, and fail on fixed high and critical CVEs.
+
+inputs:
+  sonar-token:
+    description: SonarQube token.
+    required: true
+  sonar-host-url:
+    description: SonarQube server URL.
+    required: true
+  context:
+    description: Build context, relative to the repository root.
+    required: false
+    default: .
+  dockerfile:
+    description: Dockerfile path, relative to the repository root.
+    required: false
+    default: docker/Dockerfile.source
+
+outputs:
+  image:
+    description: Pushed image reference, including the commit SHA tag.
+    value: ${{ steps.push.outputs.image }}
+
+runs:
+  using: composite
+  steps:
+    - name: SonarQube
+      uses: $/pipelines/steps/sonarqube
+      with:
+        token: ${{ inputs.sonar-token }}
+        host-url: ${{ inputs.sonar-host-url }}
+
+    - name: Build and push image
+      id: push
+      uses: $/pipelines/steps/container-push
+      with:
+        context: ${{ inputs.context }}
+        dockerfile: ${{ inputs.dockerfile }}
+
+    - name: CVE scan
+      uses: $/pipelines/steps/cve-scan
+      with:
+        image: ${{ steps.push.outputs.image }}
