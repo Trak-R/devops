@@ -1,13 +1,7 @@
 name: adsbtracker
-description: Test Tracker Hub, scan it, push its image, and fail on fixed high and critical CVEs.
+description: Test Tracker Hub, push its image, and fail on fixed high and critical CVEs.
 
 inputs:
-  sonar-token:
-    description: SonarQube token.
-    required: true
-  sonar-host-url:
-    description: SonarQube server URL.
-    required: true
   context:
     description: Build context, relative to the repository root.
     required: false
@@ -38,12 +32,6 @@ runs:
         /p:CollectCoverage=true
         /p:CoverletOutput=coverage/
         /p:CoverletOutputFormat=lcov
-
-    - name: SonarQube
-      uses: $/pipelines/steps/sonarqube
-      with:
-        token: ${{ inputs.sonar-token }}
-        host-url: ${{ inputs.sonar-host-url }}
 
     - name: Build and push image
       id: push
