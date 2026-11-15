@@ -18,8 +18,6 @@ metadata:
 spec:
   serviceName: {{ include "trakr.postgresql.fullname" . }}
   replicas: 1
-  updateStrategy:
-    type: RollingUpdate
   selector:
     matchLabels:
       {{- include "trakr.postgresql.selectorLabels" . | nindent 6 }}
