@@ -20,8 +20,12 @@ Kafka bootstrap: {{ .Values.redpanda.fullnameOverride | default .Release.Name }}
 
 Redpanda Connect HTTP: {{ $connectService }}.{{ .Release.Namespace }}.svc:80
 {{- if .Values.connect.adsb.enabled }}
+{{- $feed := .Values.connect.adsb.address -}}
+{{- if not $feed -}}
+{{- $feed = printf "%s:30003" (include "trakr.simulator.fullname" .) -}}
+{{- end }}
 ADS-B topic: {{ .Values.connect.adsb.topic }}
-  feed: {{ .Values.connect.adsb.address }}
+  feed: {{ $feed }}
   broker: {{ .Values.connect.adsb.broker }}
 {{- end }}
 {{- end }}

@@ -94,8 +94,9 @@ redpanda:
 # fields under connect.adsb are visible as .Values.adsb inside config.
 # Leave adsb.enabled false where there is no BaseStation feed. The placeholder
 # pipeline keeps the pod up. When adsb.enabled is true, Connect opens a TCP
-# client to adsb.address (the simulator Service host:port) and writes each SBS
-# line to adsb.topic on the broker named by redpanda.fullnameOverride.
+# client to the simulator Service for this release (<fullname>-simulator:30003)
+# and writes each SBS line to adsb.topic on the broker named by
+# redpanda.fullnameOverride. Set adsb.address to use a different feed.
 connect:
   nameOverride: connect
   adsb:
@@ -105,11 +106,15 @@ connect:
     broker: trakr-redpanda:9093
   config: |
     {{- if .Values.adsb.enabled }}
+    {{- $fullname := .Release.Name -}}
+    {{- if not (contains "trakr" .Release.Name) -}}
+    {{- $fullname = printf "%s-trakr" .Release.Name -}}
+    {{- end -}}
     input:
       label: adsb_basestation_in
       socket:
         network: tcp
-        address: {{ required "connect.adsb.address is required when connect.adsb.enabled is true. Set it to the BaseStation feed host:port." .Values.adsb.address | quote }}
+        address: {{ .Values.adsb.address | default (printf "%s-simulator:30003" $fullname) | quote }}
         scanner:
           lines:
             omit_empty: true

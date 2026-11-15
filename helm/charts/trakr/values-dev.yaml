@@ -42,8 +42,7 @@ simulator:
     repository: ghcr.io/trak-r/ads-b-basestationreader
     tag: d4ce96d6c8ddf4c221467ff53ed3ec058dfd45a1
 
-# The simulator Service. Connect opens a TCP client to that host:port.
+# Empty address uses this release's simulator Service, <fullname>-simulator:30003.
 connect:
   adsb:
     enabled: true
-    address: trakr-simulator:30003
