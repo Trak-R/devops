@@ -137,6 +137,7 @@ connect:
         seed_brokers:
           - {{ .Values.adsb.broker | quote }}
         topic: {{ .Values.adsb.topic | quote }}
+        allow_auto_topic_creation: true
         key: ${! meta("kafka_key").or("") }
         partitioner: murmur2_hash
         idempotent_write: true
