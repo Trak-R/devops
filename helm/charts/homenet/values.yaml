@@ -2,7 +2,7 @@
 components:
   argocd: true
   cloudflareTunnel: true
-  headlamp: true
+  headlamp: false
   openebs: true
 
 # Ingress is served by the Traefik IngressClass that K3s installs.
