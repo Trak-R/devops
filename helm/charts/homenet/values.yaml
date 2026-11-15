@@ -36,6 +36,13 @@ headlamp:
           - path: /
             type: ImplementationSpecific
 
+# OCI Helm registry ghcr.io/trak-r/charts. Create Secret homenet-ghcr in the
+# release namespace with keys username and password before install. The chart
+# copies those keys into an Argo CD repo-creds Secret when the source exists.
+ghcr:
+  secretName: homenet-ghcr
+  registry: ghcr.io/trak-r/charts
+
 # Connector for the remotely managed tunnel vibeify-tunnel.
 # Public hostnames are configured in Cloudflare. Create Secret
 # homenet-cloudflare-token with key token before install.

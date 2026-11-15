@@ -14,7 +14,17 @@ helm lint charts/trakr --values charts/trakr/values.yaml --values charts/trakr/v
 helm template trakr charts/trakr --values charts/trakr/values.yaml --values charts/trakr/values-dev.yaml
 ```
 
-Image repository defaults to `ghcr.io/trak-r/trakr`; change it when the application image exists.
+Image repository defaults to `ghcr.io/trak-r/trakr`; change it when the application image exists. Pods that pull from GHCR use the `trakr-ghcr` image pull secret. Create that docker-registry Secret in the release namespace before install:
+
+```bash
+kubectl create secret docker-registry trakr-ghcr \
+  --namespace trakr \
+  --docker-server=ghcr.io \
+  --docker-username="$GHCR_USERNAME" \
+  --docker-password="$GHCR_TOKEN"
+```
+
+`$GHCR_TOKEN` needs `read:packages`. The username is the GitHub user or organization that owns the token.
 
 The Helm workflow installs this chart as release `trakr`. In that namespace the in-cluster endpoints are:
 

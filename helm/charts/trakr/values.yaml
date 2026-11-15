@@ -6,6 +6,11 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
+# docker-registry Secret for ghcr.io. Create it in the release namespace before install.
+# It is attached to pods that pull from GHCR.
+imagePullSecrets:
+  - name: trakr-ghcr
+
 nameOverride: ""
 fullnameOverride: ""
 
@@ -142,6 +147,8 @@ adsbSimulator:
 # image.repository, image.tag, and feed.host are required when components.adsbtracker is true.
 adsbtracker:
   fullnameOverride: trakr-adsbtracker
+  imagePullSecrets:
+    - name: trakr-ghcr
   persistence:
     storageClass: ""
 

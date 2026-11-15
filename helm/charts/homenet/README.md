@@ -13,6 +13,15 @@ helm upgrade --install homenet charts/homenet --namespace homenet --create-names
 
 Nodes that should provision volumes need `lvm2` and a volume group named `openebs-vg`. The dev Terraform module creates that group on a blank secondary disk. The chart creates StorageClass `openebs-lvmpv` and does not mark it default, so it does not replace k3s `local-path`. The OpenEBS LVM node mounts the K3s kubelet directory `/var/lib/rancher/k3s/agent/kubelet`.
 
+Create the GHCR Helm registry Secret in the install namespace. The chart copies keys `username` and `password` into Argo CD repo-creds for `ghcr.io/trak-r/charts`. `$GHCR_TOKEN` needs `read:packages`.
+
+```bash
+kubectl create secret generic homenet-ghcr \
+  --namespace homenet \
+  --from-literal=username="$GHCR_USERNAME" \
+  --from-literal=password="$GHCR_TOKEN"
+```
+
 Create the tunnel token Secret in the install namespace. The token is the remotely managed credential for `vibeify-tunnel`. Copy it from the Cloudflare dashboard or API. The chart reads key `token` from Secret `homenet-cloudflare-token` and passes it to cloudflared as `TUNNEL_TOKEN`.
 
 ```bash
@@ -25,4 +34,4 @@ kubectl create secret generic homenet-cloudflare-token \
 
 Argo CD is served at `https://argocd.example.com`. Headlamp is served at `https://headlamp.example.com`. Headlamp does not create a login token. Its ServiceAccount is bound to `cluster-admin`. Create a token for `homenet-headlamp` and paste it into the Headlamp login page. The `homenet-cloudflared` Deployment runs `cloudflared tunnel run` and joins `vibeify-tunnel` with the token from `homenet-cloudflare-token`.
 
-This chart does not create Argo CD Applications or Git repository Secrets.
+This chart does not create Argo CD Applications. When Secret `homenet-ghcr` exists at install, the chart creates Argo CD repo-creds for the GHCR Helm registry.
