@@ -55,6 +55,8 @@ components:
   connect: true
   postgresql: true
   pgadmin: true
+  # Tracker Hub requires image.repository, image.tag, and feed.host before this is true.
+  adsbtracker: false
 
 # Official Redpanda chart. One broker, in-cluster only, TLS and Console off.
 # Resource and volume defaults come from that chart (1 core, 2.5Gi memory, 20Gi volume).
@@ -118,6 +120,13 @@ postgresql:
       memory: 256Mi
     limits:
       memory: 1Gi
+
+# Tracker Hub chart oci://ghcr.io/trak-r/charts/adsbtracker. Same release and namespace as this chart.
+# image.repository, image.tag, and feed.host are required when components.adsbtracker is true.
+adsbtracker:
+  fullnameOverride: trakr-adsbtracker
+  persistence:
+    storageClass: ""
 
 # pgAdmin web UI for the Postgres instance above. The image runs as UID 5050
 # and listens on 8080 because the pod cannot bind privileged ports.

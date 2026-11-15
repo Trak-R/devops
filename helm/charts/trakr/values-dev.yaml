@@ -23,3 +23,7 @@ redpanda:
     tiered:
       persistentVolume:
         storageClass: openebs-lvmpv
+
+adsbtracker:
+  persistence:
+    storageClass: openebs-lvmpv

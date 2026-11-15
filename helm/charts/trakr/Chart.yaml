@@ -14,3 +14,7 @@ dependencies:
     version: "3.2.36"
     repository: https://charts.redpanda.com
     condition: components.connect
+  - name: adsbtracker
+    version: "0.1.0"
+    repository: "oci://ghcr.io/trak-r/charts"
+    condition: components.adsbtracker
