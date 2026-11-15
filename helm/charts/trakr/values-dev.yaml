@@ -52,3 +52,9 @@ adsbtracker:
     port: 30003
   persistence:
     storageClass: openebs-lvmpv
+
+# Same BaseStation feed as adsbtracker.feed. Connect opens a second TCP client.
+connect:
+  adsb:
+    enabled: true
+    address: trakr-adsb-simulator:30003

@@ -87,13 +87,39 @@ redpanda:
       persistentVolume:
         storageClass: ""
 
-# Official Redpanda Connect chart. Replace config with a real pipeline.
-# This placeholder stays running so the pod does not exit.
+# Official Redpanda Connect chart.
 # nameOverride keeps the Service at <release>-connect. The chart's own default
 # name is redpanda-connect.
+# The chart renders config with Helm tpl in the connect subchart, so the
+# fields under connect.adsb are visible as .Values.adsb inside config.
+# Leave adsb.enabled false where there is no BaseStation feed. The placeholder
+# pipeline keeps the pod up. When adsb.enabled is true, Connect opens its own
+# TCP client to adsb.address (the same host:port as adsbtracker.feed) and
+# writes each SBS line to adsb.topic on the broker named by redpanda.fullnameOverride.
 connect:
   nameOverride: connect
+  adsb:
+    enabled: false
+    address: ""
+    topic: adsb.basestation
+    broker: trakr-redpanda:9093
   config: |
+    {{- if .Values.adsb.enabled }}
+    input:
+      label: adsb_basestation
+      socket:
+        network: tcp
+        address: {{ required "connect.adsb.address is required when connect.adsb.enabled is true. Set it to the BaseStation feed host:port." .Values.adsb.address | quote }}
+        scanner:
+          lines:
+            omit_empty: true
+    output:
+      label: adsb_basestation
+      redpanda:
+        seed_brokers:
+          - {{ .Values.adsb.broker | quote }}
+        topic: {{ .Values.adsb.topic | quote }}
+    {{- else }}
     input:
       generate:
         interval: 1s
@@ -101,6 +127,7 @@ connect:
         mapping: root.message = "trakr connect placeholder"
     output:
       stdout: {}
+    {{- end }}
 
 # Single Postgres instance using the official image. PostgreSQL 17 keeps
 # PGDATA at /var/lib/postgresql/data.

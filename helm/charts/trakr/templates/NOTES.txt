@@ -19,6 +19,11 @@ Kafka bootstrap: {{ .Values.redpanda.fullnameOverride | default .Release.Name }}
 {{- end }}
 
 Redpanda Connect HTTP: {{ $connectService }}.{{ .Release.Namespace }}.svc:80
+{{- if .Values.connect.adsb.enabled }}
+ADS-B topic: {{ .Values.connect.adsb.topic }}
+  feed: {{ .Values.connect.adsb.address }}
+  broker: {{ .Values.connect.adsb.broker }}
+{{- end }}
 {{- end }}
 {{- if .Values.components.postgresql }}
 
