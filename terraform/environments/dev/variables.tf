@@ -54,6 +54,18 @@ variable "control_plane_address" {
   type        = string
 }
 
+variable "control_plane_disk_gb" {
+  description = "Boot disk size in GiB for the dev control plane."
+  type        = number
+  default     = 64
+}
+
+variable "data_disk_gb" {
+  description = "Secondary disk size in GiB for persistent storage on the dev control plane. Set to 0 to omit it."
+  type        = number
+  default     = 500
+}
+
 variable "worker_addresses" {
   description = "Static IPv4 CIDRs for the worker nodes. An empty list provisions only the control plane."
   type        = list(string)

@@ -5,6 +5,29 @@ packages:
   - qemu-guest-agent
   - curl
   - ca-certificates
+  - lvm2
+  - cloud-guest-utils
+  - xfsprogs
+write_files:
+  - path: /usr/local/sbin/prepare-control-plane-storage
+    permissions: "0755"
+    content: |
+      ${indent(6, storage_script)}
+  - path: /etc/systemd/system/prepare-control-plane-storage.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Prepare control-plane boot and data disks
+      After=local-fs.target
+      Before=k3s.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/prepare-control-plane-storage
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
 users:
   - name: ubuntu
     groups: [sudo]
@@ -16,6 +39,9 @@ users:
 runcmd:
   - systemctl enable qemu-guest-agent
   - systemctl start qemu-guest-agent
+  - systemctl daemon-reload
+  - systemctl enable prepare-control-plane-storage.service
+  - systemctl start prepare-control-plane-storage.service
   - |
     for attempt in $(seq 1 30); do
       curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' sh -s - server \

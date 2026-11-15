@@ -13,7 +13,7 @@ helm upgrade --install homenet charts/homenet --namespace homenet --create-names
 
 On k3s, start the server with `--disable=traefik`. The bundled controller would also claim the `traefik` IngressClass.
 
-Nodes that should provision volumes need `lvm2` and a volume group named `homenet`. The chart creates StorageClass `openebs-lvmpv` and does not mark it default, so it does not replace k3s `local-path`.
+Nodes that should provision volumes need `lvm2` and a volume group named `openebs-vg`. The dev Terraform module creates that group on a blank secondary disk. The chart creates StorageClass `openebs-lvmpv` and does not mark it default, so it does not replace k3s `local-path`.
 
 Create the tunnel credential Secret in the install namespace. `credentials.json` is the file written by `cloudflared tunnel create`. Leave `cloudflare.secret` empty.
 

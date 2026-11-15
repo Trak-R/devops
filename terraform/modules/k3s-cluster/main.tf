@@ -2,6 +2,9 @@ locals {
   control_plane_ip   = split("/", var.control_plane_address)[0]
   control_plane_name = "${var.name_prefix}-k3s-cp"
   ssh_public_key     = trimspace(var.ssh_public_key)
+  # Clones cannot shrink. Keep the template at or below every boot disk that
+  # is cloned from it, then grow the control plane after clone.
+  template_disk_gb = min(var.control_plane_disk_gb, var.worker_disk_gb)
 
   workers = {
     for address in var.worker_addresses :
@@ -61,7 +64,7 @@ resource "proxmox_virtual_environment_vm" "template" {
     interface    = "virtio0"
     iothread     = true
     discard      = "on"
-    size         = var.control_plane_disk_gb
+    size         = local.template_disk_gb
   }
 
   network_device {
@@ -84,6 +87,11 @@ resource "proxmox_virtual_environment_file" "control_plane_user_data" {
       k3s_version    = var.k3s_version
       token          = random_password.k3s_token.result
       node_ip        = local.control_plane_ip
+      storage_script = templatefile("${path.module}/templates/prepare-storage.sh.tftpl", {
+        data_disk_serial  = var.data_volume_group
+        data_volume_group = var.data_volume_group
+        data_disk_enabled = var.data_disk_gb > 0 ? "true" : "false"
+      })
     })
   }
 }
@@ -142,6 +150,29 @@ resource "proxmox_virtual_environment_vm" "control_plane" {
     }
 
     user_data_file_id = proxmox_virtual_environment_file.control_plane_user_data.id
+  }
+
+  # virtio0 is the cloned boot disk. Repeat iothread and discard so a size
+  # change does not reset them to the provider defaults.
+  disk {
+    datastore_id = var.datastore_id
+    interface    = "virtio0"
+    iothread     = true
+    discard      = "on"
+    size         = var.control_plane_disk_gb
+  }
+
+  dynamic "disk" {
+    for_each = var.data_disk_gb > 0 ? [1] : []
+
+    content {
+      datastore_id = var.datastore_id
+      interface    = var.data_disk_interface
+      iothread     = true
+      discard      = "on"
+      size         = var.data_disk_gb
+      serial       = var.data_volume_group
+    }
   }
 
   network_device {

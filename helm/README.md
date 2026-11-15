@@ -38,7 +38,7 @@ helm lint charts/homenet --values charts/homenet/values.yaml
 helm template homenet charts/homenet --values charts/homenet/values.yaml
 ```
 
-Install, the tunnel Secret, the k3s Traefik flag, and the `homenet` volume group are described in `charts/homenet/README.md`. The Helm workflow lints this chart and does not install it.
+Install, the tunnel Secret, the k3s Traefik flag, and the `openebs-vg` volume group are described in `charts/homenet/README.md`. The Helm workflow lints this chart and does not install it.
 
 ## adsbtracker
 

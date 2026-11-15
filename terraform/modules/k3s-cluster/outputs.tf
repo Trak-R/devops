@@ -22,3 +22,18 @@ output "api_url" {
   description = "k3s API URL."
   value       = "https://${local.control_plane_ip}:6443"
 }
+
+output "control_plane_disk_gb" {
+  description = "Boot disk size in GiB for the control plane."
+  value       = var.control_plane_disk_gb
+}
+
+output "data_disk_gb" {
+  description = "Secondary disk size in GiB on the control plane. Zero means the disk is omitted."
+  value       = var.data_disk_gb
+}
+
+output "data_volume_group" {
+  description = "LVM volume group prepared on the secondary disk when that disk is blank."
+  value       = var.data_volume_group
+}

@@ -32,3 +32,18 @@ output "api_url" {
   description = "k3s API URL."
   value       = module.k3s.api_url
 }
+
+output "control_plane_disk_gb" {
+  description = "Boot disk size in GiB for the control plane."
+  value       = module.k3s.control_plane_disk_gb
+}
+
+output "data_disk_gb" {
+  description = "Secondary disk size in GiB on the control plane. Zero means the disk is omitted."
+  value       = module.k3s.data_disk_gb
+}
+
+output "data_volume_group" {
+  description = "LVM volume group prepared on a blank secondary disk."
+  value       = module.k3s.data_volume_group
+}

@@ -114,9 +114,47 @@ variable "control_plane_memory_mb" {
 }
 
 variable "control_plane_disk_gb" {
-  description = "Disk size in GiB for the control plane and the template."
+  description = "Boot disk size in GiB for the control plane. The template disk is the smaller of this value and worker_disk_gb."
   type        = number
   default     = 32
+
+  validation {
+    condition     = var.control_plane_disk_gb >= 8 && var.control_plane_disk_gb == floor(var.control_plane_disk_gb)
+    error_message = "control_plane_disk_gb must be a whole number of at least 8 GiB."
+  }
+}
+
+variable "data_disk_gb" {
+  description = "Secondary virtio disk in GiB for Kubernetes persistent storage on the control plane. Set to 0 to omit it. Uses datastore_id."
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.data_disk_gb >= 0 && var.data_disk_gb == floor(var.data_disk_gb)
+    error_message = "data_disk_gb must be a whole number of GiB. Use 0 to omit the disk."
+  }
+}
+
+variable "data_disk_interface" {
+  description = "Proxmox interface for the secondary disk. virtio0 is the boot disk."
+  type        = string
+  default     = "virtio1"
+
+  validation {
+    condition     = can(regex("^virtio([1-9]|1[0-5])$", var.data_disk_interface))
+    error_message = "data_disk_interface must be virtio1 through virtio15."
+  }
+}
+
+variable "data_volume_group" {
+  description = "LVM volume group created on a blank secondary disk. Also used as the virtio serial, so the guest finds the disk at /dev/disk/by-id/virtio-<name>."
+  type        = string
+  default     = "openebs-vg"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9][A-Za-z0-9_.-]{0,19}$", var.data_volume_group))
+    error_message = "data_volume_group must be 1-20 letters, digits, or . _ - and must start with a letter or digit so it is a valid virtio serial."
+  }
 }
 
 variable "worker_cpu_cores" {
@@ -132,9 +170,14 @@ variable "worker_memory_mb" {
 }
 
 variable "worker_disk_gb" {
-  description = "Disk size in GiB for each worker."
+  description = "Boot disk size in GiB for each worker."
   type        = number
   default     = 40
+
+  validation {
+    condition     = var.worker_disk_gb >= 8 && var.worker_disk_gb == floor(var.worker_disk_gb)
+    error_message = "worker_disk_gb must be a whole number of at least 8 GiB."
+  }
 }
 
 variable "tags" {

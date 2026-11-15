@@ -66,7 +66,7 @@ cloudflare-tunnel:
 
 # OpenEBS Local PV LVM uses the chart defaults, including kubelet dir /var/lib/kubelet/.
 openebs:
-  volumeGroup: homenet
+  volumeGroup: openebs-vg
   storageClass:
     name: openebs-lvmpv
     defaultClass: false

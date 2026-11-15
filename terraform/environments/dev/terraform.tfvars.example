@@ -15,5 +15,8 @@ bridge               = "vmbr0"
 gateway               = "192.168.1.1"
 control_plane_address = "192.168.1.40/24"
 # Add a CIDR here later to provision a worker, for example ["192.168.1.41/24"].
-worker_addresses = []
+worker_addresses      = []
+control_plane_disk_gb = 64
+# Secondary disk on the control plane, on datastore_id. Set to 0 to omit it.
+data_disk_gb = 500
 ssh_public_key   = "ssh-ed25519 AAAA... you@host"

@@ -26,7 +26,13 @@ The endpoint is the API URL, including the port, for example `https://proxmox.ex
 
 The token needs these privileges on the target path: `VM.Allocate`, `VM.Clone`, `VM.Config.*`, `VM.PowerMgmt`, `Datastore.Allocate`, `Datastore.AllocateTemplate`, `SDN.Use`, `Sys.Audit`, and `Sys.Modify`. The image download uses the Proxmox download API, which requires the two `Sys` privileges. The image datastore must allow Import. The snippet datastore must allow Snippets. The k3s token is stored in Terraform state and in those snippets, so keep state private.
 
-The module defaults are 2 vCPU and 4 GB RAM. Dev sets the control plane to 4 vCPU and 8 GB. Changing those values updates the existing VM in place and may reboot it. The control plane disk is 32 GB and each worker disk is 40 GB.
+The module defaults are 2 vCPU and 4 GB RAM. Dev sets the control plane to 4 vCPU and 8 GB. Changing those values updates the existing VM in place and may reboot it. The module boot-disk defaults are 32 GB for the control plane and 40 GB for each worker. Dev sets the control-plane boot disk to 64 GB. The template boot disk stays at the smaller of those two sizes, then the control plane grows after clone. Proxmox rejects a shrink, and a shrink can replace the disk.
+
+Dev also attaches a 500 GB secondary disk to the control plane on `datastore_id`, which is `local-lvm` in the example. `data_disk_gb = 0` omits it. Workers do not get this disk. The disk uses Proxmox interface `virtio1` and serial `openebs-vg`. The guest script finds it at `/dev/disk/by-id/virtio-openebs-vg` and does not use `/dev/vdb`. On a blank disk it creates LVM volume group `openebs-vg` and no logical volumes. A disk that already has a signature, partition, filesystem, or other volume group is left unchanged. Terraform does not install OpenEBS. The HomeNet chart's StorageClass expects that volume group when OpenEBS is installed later.
+
+Setting `data_disk_gb` back to 0 deletes the `virtio1` volume in Proxmox, including its data. Changing `data_volume_group` changes the virtio serial. The script will not move or wipe a volume group that already exists.
+
+A VM that has already finished its first boot does not run cloud-init again. After this change, disk attachment and the boot-disk resize still happen through Proxmox. The guest script is installed on the next cloud-init run, which for an existing VM means `sudo cloud-init clean --logs` and a reboot. That re-runs the k3s install as well. A new VM runs the script on first boot.
 
 Workers that were already applied under the old index keys `1` and `2` are replaced once, because each worker is now identified by its CIDR. The control plane is not replaced by that change.
 

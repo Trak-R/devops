@@ -18,6 +18,8 @@ module "k3s" {
   control_plane_address   = var.control_plane_address
   control_plane_cpu_cores = 4
   control_plane_memory_mb = 8192
+  control_plane_disk_gb   = var.control_plane_disk_gb
+  data_disk_gb            = var.data_disk_gb
   worker_addresses        = var.worker_addresses
   ssh_public_key          = var.ssh_public_key
   tags                    = ["trakr", "dev", "k3s"]
