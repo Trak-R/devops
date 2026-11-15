@@ -48,7 +48,7 @@ adsbtracker:
     tls:
       enabled: false
   feed:
-    host: trakr-adsb-simulator
+    host: trakr-adsbtracker
     port: 30003
   persistence:
     storageClass: openebs-lvmpv
@@ -57,4 +57,4 @@ adsbtracker:
 connect:
   adsb:
     enabled: true
-    address: trakr-adsb-simulator:30003
+    address: trakr-adsbtracker:30003
