@@ -8,9 +8,9 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - name: feed
-      port: {{ .Values.adsbSimulator.port }}
-      targetPort: feed
+    - name: http
+      port: 80
+      targetPort: http
       protocol: TCP
   selector:
     {{- include "trakr.adsbSimulator.selectorLabels" . | nindent 4 }}

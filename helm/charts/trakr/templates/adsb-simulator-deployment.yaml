@@ -32,23 +32,46 @@ spec:
           image: "{{ .Values.adsbSimulator.image.repository }}:{{ .Values.adsbSimulator.image.tag }}"
           imagePullPolicy: {{ .Values.adsbSimulator.image.pullPolicy }}
           ports:
-            - name: feed
-              containerPort: {{ .Values.adsbSimulator.port }}
+            - name: http
+              containerPort: 5000
               protocol: TCP
           env:
             - name: SIMULATOR_BIND_ADDRESS
               value: "0.0.0.0"
+            - name: ConnectionStrings__BaseStationReaderDB
+              value: "Data Source=/var/opt/adsbtracker/aircrafttracker.db;Default Timeout=5;Pooling=True"
+            - name: ApplicationSettings__LogFile
+              value: /var/opt/adsbtracker/TrackerHub.log
+            - name: WebUi__TrackingProfilesPath
+              value: /var/opt/adsbtrackingprofiles
+            - name: WebUi__UseHttpsRedirection
+              value: "false"
           startupProbe:
-            tcpSocket:
-              port: feed
-            periodSeconds: 5
-            failureThreshold: 12
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 30
           readinessProbe:
-            tcpSocket:
-              port: feed
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           livenessProbe:
-            tcpSocket:
-              port: feed
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/adsbtracker
+            - name: profiles
+              mountPath: /var/opt/adsbtrackingprofiles
           securityContext:
             runAsNonRoot: true
             runAsUser: 1654
@@ -61,4 +84,9 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: profiles
+          emptyDir: {}
 {{- end }}
