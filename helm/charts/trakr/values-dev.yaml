@@ -1,7 +1,7 @@
 replicaCount: 0
 
 components:
-  simulator: true
+  simulator: false
 
 ingress:
   enabled: false
@@ -45,4 +45,4 @@ simulator:
 # Empty address uses this release's simulator Service, <fullname>-simulator:30003.
 connect:
   adsb:
-    enabled: true
+    enabled: false
