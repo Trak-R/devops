@@ -1,0 +1,129 @@
+{{- if .Values.components.connect }}
+{{- $fullname := .Release.Name -}}
+{{- if not (contains "trakr" .Release.Name) -}}
+{{- $fullname = printf "%s-trakr" .Release.Name -}}
+{{- end -}}
+{{- $topics := .Values.connect.topics -}}
+{{- if $topics.enabled }}
+{{- $replicas := int .Values.redpanda.statefulset.replicas }}
+{{- $names := dict -}}
+{{- range $topics.items }}
+{{- $name := required "connect.topics.items[].name is required" .name -}}
+{{- if not (regexMatch "^[A-Za-z0-9._-]+$" $name) }}
+{{- fail (printf "topic name %q must contain only letters, digits, dots, underscores, and hyphens" $name) }}
+{{- end }}
+{{- if hasKey $names $name }}
+{{- fail (printf "duplicate topic %s" $name) }}
+{{- end }}
+{{- $_ := set $names $name true }}
+{{- $partitions := required (printf "topic %s needs partitions" $name) .partitions | int }}
+{{- if lt $partitions 1 }}
+{{- fail (printf "topic %s partitions must be at least 1" $name) }}
+{{- end }}
+{{- $replicasForTopic := required (printf "topic %s needs replicationFactor" $name) .replicationFactor | int }}
+{{- if or (lt $replicasForTopic 1) (ne (mod $replicasForTopic 2) 1) }}
+{{- fail (printf "topic %s replicationFactor %d must be a positive odd number" $name $replicasForTopic) }}
+{{- end }}
+{{- if gt $replicasForTopic $replicas }}
+{{- fail (printf "topic %s replicationFactor %d exceeds redpanda.statefulset.replicas %d" $name $replicasForTopic $replicas) }}
+{{- end }}
+{{- if and .config (not (kindIs "map" .config)) }}
+{{- fail (printf "topic %s config must be a map of topic properties" $name) }}
+{{- end }}
+{{- range $key, $value := (.config | default dict) }}
+{{- if not (regexMatch "^[A-Za-z0-9._-]+$" $key) }}
+{{- fail (printf "topic %s config key %q is not a topic property name" $name $key) }}
+{{- end }}
+{{- $rendered := printf "%v" $value }}
+{{- if not (regexMatch "^-?[A-Za-z0-9._:+/]+$" $rendered) }}
+{{- fail (printf "topic %s config %s has unsupported value %q" $name $key $rendered) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.connect.adsb.enabled }}
+{{- if not (hasKey $names .Values.connect.adsb.topic) }}
+{{- fail (printf "connect.adsb.topic %q is not listed in connect.topics.items" .Values.connect.adsb.topic) }}
+{{- end }}
+{{- end }}
+{{- if and .Values.components.redpanda $topics.items }}
+{{- if not ($topics.broker | default .Values.connect.adsb.broker) }}
+{{- fail "connect.topics.broker or connect.adsb.broker is required to provision topics" }}
+{{- end }}
+{{- end }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-topics" $fullname }}
+  labels:
+    {{- include "trakr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: topics
+data:
+  provision.sh: |
+    #!/bin/bash
+    # Creates topics declared in connect.topics before Redpanda Connect starts.
+    set -euo pipefail
+{{- $broker := $topics.broker | default .Values.connect.adsb.broker }}
+{{- if and $topics.enabled .Values.components.redpanda $topics.items }}
+    broker={{ $broker | quote }}
+    interval="${TOPIC_WAIT_INTERVAL:-2}"
+    attempts="${TOPIC_WAIT_ATTEMPTS:-90}"
+
+    rpk_cmd() {
+      rpk "$@" --ignore-profile -X "brokers=${broker}"
+    }
+
+    ready=0
+    attempt=1
+    while [ "${attempt}" -le "${attempts}" ]; do
+      if rpk_cmd topic list >/dev/null 2>&1; then
+        ready=1
+        break
+      fi
+      echo "waiting for broker ${broker} (${attempt}/${attempts})" >&2
+      sleep "${interval}"
+      attempt=$((attempt + 1))
+    done
+    if [ "${ready}" -ne 1 ]; then
+      echo "broker ${broker} did not accept topic requests" >&2
+      exit 1
+    fi
+
+    provision_topic() {
+      local name="$1"
+      local parts="$2"
+      local replicas="$3"
+      shift 3
+
+      echo "provisioning ${name} partitions=${parts} replicas=${replicas}"
+      local create_args=(topic create "$name" --partitions "$parts" --replicas "$replicas" --if-not-exists)
+      local cfg
+      for cfg in "$@"; do
+        create_args+=(--topic-config "$cfg")
+      done
+      rpk_cmd "${create_args[@]}"
+
+      local current
+      current="$(rpk_cmd topic describe "$name" --print-summary | awk '$1 == "PARTITIONS" && $2 ~ /^[0-9]+$/ { print $2; exit }')"
+      if [ -z "${current}" ]; then
+        echo "topic ${name}: describe did not report a partition count" >&2
+        exit 1
+      fi
+      if [ "${parts}" -gt "${current}" ]; then
+        rpk_cmd topic add-partitions "$name" --num "$((parts - current))"
+      elif [ "${parts}" -lt "${current}" ]; then
+        echo "topic ${name}: has ${current} partitions; leaving it above requested ${parts}" >&2
+      fi
+
+      for cfg in "$@"; do
+        rpk_cmd topic alter-config "$name" --no-confirm --set "$cfg"
+      done
+    }
+{{- range $topics.items }}
+    provision_topic {{ .name | quote }} {{ .partitions | int | quote }} {{ .replicationFactor | int | quote }}{{ range $key, $value := (.config | default dict) }} {{ printf "%s=%v" $key $value | quote }}{{ end }}
+{{- end }}
+{{- else }}
+    echo "topic provisioning skipped"
+    exit 0
+{{- end }}
+{{- end }}

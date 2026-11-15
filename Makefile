@@ -3,7 +3,7 @@ CHART := helm/charts/trakr
 HOMENET := helm/charts/homenet
 HELM_VALUES := $(CHART)/values-dev.yaml $(CHART)/values-staging.yaml $(CHART)/values-prod.yaml
 
-.PHONY: fmt fmt-check terraform-validate helm-lint helm-template
+.PHONY: fmt fmt-check terraform-validate helm-lint helm-template helm-test
 
 fmt:
 	terraform fmt -recursive terraform
@@ -35,3 +35,6 @@ helm-template:
 		helm template trakr $(CHART) --values $(CHART)/values.yaml --values $$values >/dev/null; \
 	done
 	helm template homenet $(HOMENET) --values $(HOMENET)/values.yaml >/dev/null
+
+helm-test:
+	./helm/charts/trakr/ci/run-tests.sh

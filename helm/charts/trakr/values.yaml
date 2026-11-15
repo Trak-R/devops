@@ -95,8 +95,10 @@ redpanda:
 # Leave adsb.enabled false where there is no BaseStation feed. The placeholder
 # pipeline keeps the pod up. When adsb.enabled is true, Connect opens a TCP
 # client to the simulator Service for this release (<fullname>-simulator:30003)
-# and writes each SBS line to adsb.topic on the broker named by
-# redpanda.fullnameOverride. Set adsb.address to use a different feed.
+# and writes each raw SBS line to adsb.topic on the broker named by
+# redpanda.fullnameOverride. The Kafka key is the uppercase ICAO24 address.
+# Redpanda creates that topic on the first produce. Set adsb.address to use a
+# different feed.
 connect:
   nameOverride: connect
   adsb:
@@ -118,12 +120,28 @@ connect:
         scanner:
           lines:
             omit_empty: true
+    pipeline:
+      processors:
+        - label: adsb_icao_key
+          try:
+            - mapping: |
+                # HexIdent is the ICAO24 address: SBS field 5, zero-based index 4.
+                # Index 5 is FlightID. Invalid addresses keep the original line and use an empty key.
+                root = content()
+                let fields = content().string().split(",").catch([])
+                let candidate = $fields.index(4).catch("").or("").string().trim().uppercase().catch("")
+                meta kafka_key = if $candidate.re_match("^[0-9A-F]{6}$").catch(false) { $candidate } else { "" }
     output:
       label: adsb_basestation_out
       redpanda:
         seed_brokers:
           - {{ .Values.adsb.broker | quote }}
         topic: {{ .Values.adsb.topic | quote }}
+        key: ${! meta("kafka_key").or("") }
+        partitioner: murmur2_hash
+        idempotent_write: true
+        max_in_flight_requests: 1
+        acks: all
     {{- else }}
     input:
       generate:

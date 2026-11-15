@@ -43,6 +43,18 @@ jobs:
         with:
           values: helm/charts/trakr/values-${{ matrix.environment }}.yaml
 
+  test:
+    name: Test trakr chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: azure/setup-helm@v5
+        with:
+          version: v3.22.1
+      - name: Render and Connect pipeline
+        shell: bash
+        run: make helm-test
+
   lint-homenet:
     name: Lint homenet
     runs-on: ubuntu-latest
@@ -57,6 +69,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     needs:
       - lint
+      - test
       - lint-homenet
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
