@@ -44,10 +44,9 @@ spec:
               value: /var/opt/adsbtracker/TrackerHub.log
             - name: WebUi__TrackingProfilesPath
               value: /var/opt/adsbtrackingprofiles
-            - name: WebUi__UseHttpsRedirection
-              value: "false"
-            # The image defines a Kestrel HTTPS endpoint. An empty URL is rejected, and
-            # the container has no developer certificate, so the endpoint stays on HTTP.
+            # Turning WebUi__UseHttpsRedirection off makes this image call ListenAnyIP(5000)
+            # after configuration already bound that port. Keep the HTTPS endpoint on HTTP
+            # so Kestrel does not look for a developer certificate.
             - name: Kestrel__Endpoints__Https__Url
               value: http://127.0.0.1:5001
           startupProbe:
