@@ -46,6 +46,10 @@ spec:
               value: /var/opt/adsbtrackingprofiles
             - name: WebUi__UseHttpsRedirection
               value: "false"
+            # The image defines a Kestrel HTTPS endpoint. An empty URL is rejected, and
+            # the container has no developer certificate, so the endpoint stays on HTTP.
+            - name: Kestrel__Endpoints__Https__Url
+              value: http://127.0.0.1:5001
           startupProbe:
             httpGet:
               path: /health
