@@ -2,14 +2,11 @@ dependencies:
 - name: argo-cd
   repository: https://argoproj.github.io/argo-helm
   version: 10.18.0
-- name: cloudflare-tunnel
-  repository: https://cloudflare.github.io/helm-charts
-  version: 0.3.2
 - name: headlamp
   repository: https://kubernetes-sigs.github.io/headlamp/
   version: 0.46.0
 - name: lvm-localpv
   repository: https://openebs.github.io/lvm-localpv
   version: 1.10.1
-digest: sha256:0ecfbddbfc5ef6fed57870bf425e63c5599497ccc1b1f4559ff5dd48e2d400f1
-generated: "2026-11-14T19:45:15.770823-05:00"
+digest: sha256:34e32192ee31d327ed8df0194eaca09f5576e326dba954b4d85a17ba24ee61b6
+generated: "2026-11-14T20:10:03.255467-05:00"

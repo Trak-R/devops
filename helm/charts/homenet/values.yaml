@@ -36,20 +36,18 @@ headlamp:
           - path: /
             type: ImplementationSpecific
 
-# One wildcard rule. Apps publish hostnames with Ingress objects.
-# The tunnel chart appends a catch-all that returns HTTP 404.
-# Create Secret homenet-tunnel-credentials with key credentials.json before install.
-cloudflare-tunnel:
+# Connector for the remotely managed tunnel vibeify-tunnel.
+# Public hostnames are configured in Cloudflare. Create Secret
+# homenet-cloudflare-token with key token before install.
+cloudflared:
   replicaCount: 1
-  cloudflare:
-    account: ""
-    tunnelName: ""
-    tunnelId: ""
-    secret: ""
-    secretName: homenet-tunnel-credentials
-    ingress:
-      - hostname: "*.example.com"
-        service: http://traefik.kube-system.svc.cluster.local:80
+  image:
+    repository: cloudflare/cloudflared
+    tag: "2026.11.0"
+    pullPolicy: IfNotPresent
+  tunnelName: vibeify-tunnel
+  secretName: homenet-cloudflare-token
+  secretKey: token
 
 # lvm-localpv 1.10.1 mounts the node plugin at lvmNode.kubeletDir.
 # The chart default is /var/lib/kubelet/. K3s uses the path below.

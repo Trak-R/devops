@@ -10,10 +10,6 @@ dependencies:
     version: "10.18.0"
     repository: https://argoproj.github.io/argo-helm
     condition: components.argocd
-  - name: cloudflare-tunnel
-    version: "0.3.2"
-    repository: https://cloudflare.github.io/helm-charts
-    condition: components.cloudflareTunnel
   - name: headlamp
     version: "0.46.0"
     repository: https://kubernetes-sigs.github.io/headlamp/
