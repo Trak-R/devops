@@ -1,5 +1,5 @@
 name: adsbtracker
-description: Test Tracker Hub, push its image, and fail on fixed high and critical CVEs.
+description: Test the BaseStation reader, push the simulator image, and fail on fixed high and critical CVEs.
 
 inputs:
   context:
@@ -9,7 +9,7 @@ inputs:
   dockerfile:
     description: Dockerfile path, relative to the repository root.
     required: false
-    default: docker/Dockerfile.source
+    default: docker/Dockerfile.simulator
 
 outputs:
   image:

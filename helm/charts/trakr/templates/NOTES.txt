@@ -25,6 +25,10 @@ ADS-B topic: {{ .Values.connect.adsb.topic }}
   broker: {{ .Values.connect.adsb.broker }}
 {{- end }}
 {{- end }}
+{{- if .Values.components.simulator }}
+
+BaseStation simulator: {{ include "trakr.simulator.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.simulator.service.port }}
+{{- end }}
 {{- if .Values.components.postgresql }}
 
 Postgres: {{ include "trakr.postgresql.fullname" . }}.{{ .Release.Namespace }}.svc:5432

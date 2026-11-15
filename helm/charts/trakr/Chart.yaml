@@ -2,7 +2,7 @@ apiVersion: v2
 name: trakr
 description: Helm chart for the TrakR application
 type: application
-version: 0.2.1
+version: 0.3.0
 appVersion: "0.1.0"
 kubeVersion: ">=1.25.0-0"
 dependencies:
@@ -14,7 +14,3 @@ dependencies:
     version: "3.2.36"
     repository: https://charts.redpanda.com
     condition: components.connect
-  - name: adsbtracker
-    version: "0.1.0"
-    repository: "oci://ghcr.io/trak-r/charts"
-    condition: components.adsbtracker

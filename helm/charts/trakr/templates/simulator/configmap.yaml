@@ -1,0 +1,16 @@
+{{- if .Values.components.simulator }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "trakr.simulator.fullname" . }}
+  labels:
+    {{- include "trakr.simulator.labels" . | nindent 4 }}
+data:
+  SIMULATOR_BIND_ADDRESS: "0.0.0.0"
+  ApplicationSettings__Port: {{ .Values.simulator.settings.port | quote }}
+  ApplicationSettings__LogFile: {{ .Values.simulator.settings.logFile | quote }}
+  ApplicationSettings__SendInterval: {{ .Values.simulator.settings.sendInterval | quote }}
+  ApplicationSettings__NumberOfAircraft: {{ .Values.simulator.settings.numberOfAircraft | quote }}
+  ApplicationSettings__ReceiverLatitude: {{ .Values.simulator.settings.receiverLatitude | quote }}
+  ApplicationSettings__ReceiverLongitude: {{ .Values.simulator.settings.receiverLongitude | quote }}
+{{- end }}

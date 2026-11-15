@@ -1,0 +1,97 @@
+{{- if .Values.components.simulator }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trakr.simulator.fullname" . }}
+  labels:
+    {{- include "trakr.simulator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "trakr.simulator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "trakr.simulator.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/simulator/configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.simulator.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      {{- $nodeSelector := dict }}
+      {{- if .Values.simulator.image.pinAmd64 }}
+      {{- $_ := set $nodeSelector "kubernetes.io/arch" "amd64" }}
+      {{- end }}
+      {{- if .Values.simulator.nodeSelector }}
+      {{- $nodeSelector = merge $nodeSelector .Values.simulator.nodeSelector }}
+      {{- end }}
+      {{- with $nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.simulator.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.simulator.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: simulator
+          image: {{ printf "%s:%s" (required "simulator.image.repository is required when components.simulator is true" .Values.simulator.image.repository) (required "simulator.image.tag is required when components.simulator is true" .Values.simulator.image.tag) | quote }}
+          imagePullPolicy: {{ .Values.simulator.image.pullPolicy }}
+          ports:
+            - name: basestation
+              containerPort: {{ .Values.simulator.settings.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "trakr.simulator.fullname" . }}
+          startupProbe:
+            tcpSocket:
+              port: basestation
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: basestation
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: basestation
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1654
+            runAsGroup: 1654
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.simulator.resources | nindent 12 }}
+          volumeMounts:
+            - name: logs
+              mountPath: {{ dir .Values.simulator.settings.logFile }}
+      volumes:
+        - name: logs
+          emptyDir: {}
+{{- end }}

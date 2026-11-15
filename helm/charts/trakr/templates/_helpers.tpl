@@ -90,3 +90,20 @@ app.kubernetes.io/component: pgadmin
 app.kubernetes.io/version: {{ .Values.pgadmin.image.tag | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
+
+{{- define "trakr.simulator.fullname" -}}
+{{- printf "%s-simulator" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "trakr.simulator.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "trakr.simulator.fullname" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "trakr.simulator.labels" -}}
+helm.sh/chart: {{ include "trakr.chart" . }}
+{{ include "trakr.simulator.selectorLabels" . }}
+app.kubernetes.io/component: simulator
+app.kubernetes.io/version: {{ .Values.simulator.image.tag | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}

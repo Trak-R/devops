@@ -1,0 +1,17 @@
+{{- if .Values.components.simulator }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trakr.simulator.fullname" . }}
+  labels:
+    {{- include "trakr.simulator.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: basestation
+      port: {{ .Values.simulator.service.port }}
+      targetPort: basestation
+      protocol: TCP
+  selector:
+    {{- include "trakr.simulator.selectorLabels" . | nindent 4 }}
+{{- end }}

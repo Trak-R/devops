@@ -60,8 +60,8 @@ components:
   connect: true
   postgresql: true
   pgadmin: true
-  # Tracker Hub requires image.repository, image.tag, and feed.host before this is true.
-  adsbtracker: false
+  # BaseStation simulator. image.repository and image.tag are required when this is true.
+  simulator: false
 
 # Official Redpanda chart. One broker, in-cluster only, TLS off.
 # Console stays off here. Dev turns it on at https://trakr-redpanda.vibeify.co.
@@ -93,9 +93,9 @@ redpanda:
 # The chart renders config with Helm tpl in the connect subchart, so the
 # fields under connect.adsb are visible as .Values.adsb inside config.
 # Leave adsb.enabled false where there is no BaseStation feed. The placeholder
-# pipeline keeps the pod up. When adsb.enabled is true, Connect opens its own
-# TCP client to adsb.address (the same host:port as adsbtracker.feed) and
-# writes each SBS line to adsb.topic on the broker named by redpanda.fullnameOverride.
+# pipeline keeps the pod up. When adsb.enabled is true, Connect opens a TCP
+# client to adsb.address (the simulator Service host:port) and writes each SBS
+# line to adsb.topic on the broker named by redpanda.fullnameOverride.
 connect:
   nameOverride: connect
   adsb:
@@ -154,14 +154,36 @@ postgresql:
     limits:
       memory: 1Gi
 
-# Tracker Hub chart oci://ghcr.io/trak-r/charts/adsbtracker. Same release and namespace as this chart.
-# image.repository, image.tag, and feed.host are required when components.adsbtracker is true.
-adsbtracker:
-  fullnameOverride: trakr-adsbtracker
+# BaseStationReader.Simulator. The image is built from docker/Dockerfile.simulator.
+# image.repository and image.tag are required when components.simulator is true.
+# The log file path must stay under the emptyDir mounted at its directory.
+simulator:
+  image:
+    repository: ghcr.io/trak-r/ads-b-basestationreader
+    tag: ""
+    pullPolicy: IfNotPresent
+    # The published image is linux/amd64. Set false after publishing a native image for another architecture.
+    pinAmd64: true
   imagePullSecrets:
     - name: trakr-ghcr
-  persistence:
-    storageClass: ""
+  service:
+    port: 30003
+  settings:
+    port: 30003
+    sendInterval: 100
+    numberOfAircraft: 10
+    receiverLatitude: 51.4711123
+    receiverLongitude: -0.4646874
+    logFile: /var/opt/adsb-simulator/ReceiverSimulator.log
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 # pgAdmin web UI for the Postgres instance above. The image runs as UID 5050
 # and listens on 8080 because the pod cannot bind privileged ports.

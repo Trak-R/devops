@@ -5,8 +5,5 @@ dependencies:
 - name: connect
   repository: https://charts.redpanda.com
   version: 3.2.36
-- name: adsbtracker
-  repository: oci://ghcr.io/trak-r/charts
-  version: 0.1.0
-digest: sha256:147b60ad0a71649ee2e90ae8e981ee0a677742508d0e1b7cfade2c06dfee415c
-generated: "2026-11-14T22:22:25.008222-05:00"
+digest: sha256:3d774694b697d719003eb4d48fa03143f1eb85f46802b09e24879e5274efb569
+generated: "2026-11-15T10:12:00.32447-05:00"

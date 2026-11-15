@@ -1,7 +1,7 @@
 replicaCount: 0
 
 components:
-  adsbtracker: true
+  simulator: true
 
 ingress:
   enabled: false
@@ -37,24 +37,15 @@ redpanda:
       persistentVolume:
         storageClass: openebs-lvmpv
 
-adsbtracker:
+# unpublished is not a published image. Replace it with the commit SHA of a
+# BaseStationReader.Simulator build before installing this release.
+simulator:
   image:
     repository: ghcr.io/trak-r/ads-b-basestationreader
-    tag: "6ffe327e88a1715049acd397f32923ddd73b7393"
-  ingress:
-    enabled: true
-    className: traefik
-    host: trakr-adsbtracker.vibeify.co
-    tls:
-      enabled: false
-  feed:
-    host: trakr-adsbtracker
-    port: 30003
-  persistence:
-    storageClass: openebs-lvmpv
+    tag: unpublished
 
-# Same BaseStation feed as adsbtracker.feed. Connect opens a second TCP client.
+# The simulator Service. Connect opens a TCP client to that host:port.
 connect:
   adsb:
     enabled: true
-    address: trakr-adsbtracker:30003
+    address: trakr-simulator:30003
