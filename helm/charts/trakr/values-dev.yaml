@@ -27,3 +27,6 @@ redpanda:
 adsbtracker:
   persistence:
     storageClass: openebs-lvmpv
+
+components:
+  adsbtracker: true
