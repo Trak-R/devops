@@ -44,6 +44,9 @@
 {{- if not (hasKey $names .Values.connect.adsb.topic) }}
 {{- fail (printf "connect.adsb.topic %q is not listed in connect.topics.items" .Values.connect.adsb.topic) }}
 {{- end }}
+{{- if not (hasKey $names (.Values.connect.adsb.deadLetterTopic | default "")) }}
+{{- fail (printf "connect.adsb.deadLetterTopic %q is not listed in connect.topics.items" .Values.connect.adsb.deadLetterTopic) }}
+{{- end }}
 {{- end }}
 {{- if and .Values.components.redpanda $topics.items }}
 {{- if not ($topics.broker | default .Values.connect.adsb.broker) }}

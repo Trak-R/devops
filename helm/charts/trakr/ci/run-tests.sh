@@ -78,9 +78,14 @@ require(adsb, 'key: ${! meta("kafka_key").or("") }', "record key")
 require(adsb, "idempotent_write: true", "idempotent producer")
 require(adsb, "max_in_flight_requests: 1", "ordered produce")
 require(adsb, "acks: all", "acks")
-require(adsb, "allow_auto_topic_creation: false", "no auto create")
+require(adsb, "allow_auto_topic_creation: true", "auto create")
 require(adsb, "$fields.index(4)", "icao field")
-require(adsb, 'meta kafka_key = if $candidate.re_match("^[0-9A-F]{6}$")', "icao metadata")
+require(adsb, 're_match("^[0-9A-F]{6}$")', "icao check")
+require(adsb, "meta kafka_key = if $valid", "icao metadata")
+require(adsb, "switch:", "output switch")
+require(adsb, 'meta("dead_letter") == ""', "main topic gate")
+require(adsb, 'topic: "adsb.basestation"', "normalized topic")
+require(adsb, 'topic: "adsb.basestation.dlq"', "dead letter topic")
 if "kafka_key" in trakr.split("redpanda-connect.yaml:")[1].split("kind:")[0]:
     # The placeholder pipeline is in the base render. The topic script also
     # has no kafka_key. Search only the connect config block above.
@@ -170,6 +175,21 @@ connect:
         config: {}
 EOF
 expect_fail "is not listed in connect.topics.items" --values "${work}/missing.yaml"
+
+echo "==> reject a dead-letter topic that ingestion does not list"
+cat >"${work}/missing-dlq.yaml" <<'EOF'
+connect:
+  adsb:
+    enabled: true
+  topics:
+    enabled: true
+    items:
+      - name: adsb.basestation
+        partitions: 3
+        replicationFactor: 1
+        config: {}
+EOF
+expect_fail "deadLetterTopic" --values "${work}/missing-dlq.yaml"
 
 echo "==> provisioning script"
 extract_block "${work}/trakr.yaml" "provision.sh: |" "${work}/provision.sh"

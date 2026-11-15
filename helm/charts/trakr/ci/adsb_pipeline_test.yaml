@@ -1,81 +1,233 @@
 # Redpanda Connect unit tests for the rendered ADS-B pipeline.
 # HexIdent is field index 4. Index 5 is FlightID and must not become the key.
+# Valid MSG lines become JSON. Everything else is a dead-letter envelope.
 tests:
-  - name: uppercases icao24 and keeps the raw sbs line
+  - name: normalizes a position message and uppercases the address
     input_batch:
-      - content: "MSG,3,1,1,abc123,999,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,35000,,,,,,,,,,,"
+      - content: "MSG,3,1,1,abc123,999,2024/01/01,00:00:00.000,2024/01/01,00:00:00.100, BAW123 ,35000,450.5,180.25,51.47,-0.46,-64,7700,1,0,0,1"
     output_batches:
       -
-        - content_equals: "MSG,3,1,1,abc123,999,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,35000,,,,,,,,,,,"
+        - json_equals:
+            messageType: MSG
+            transmissionType: AirbornePosition
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+            callsign: BAW123
+            altitude: 35000
+            groundSpeed: 450.5
+            track: 180.25
+            latitude: 51.47
+            longitude: -0.46
+            verticalRate: -64
+            squawk: "7700"
+            alert: true
+            emergency: false
+            spi: false
+            isOnGround: true
           metadata_equals:
             kafka_key: ABC123
+            dead_letter: ""
 
-  - name: assigns a key per message
+  - name: omits empty fields and keeps an explicit zero
     input_batch:
-      - content: "MSG,3,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,35000,,,,,,,,,,,"
-      - content: "MSG,4,1,1,00abef,1,2024/01/01,00:00:01.000,2024/01/01,00:00:01.000,,35000,,,,,,,,,,,"
+      - content: "MSG,3,1,1,abc123,999,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,0,,,,,,,,,,"
     output_batches:
       -
-        - content_equals: "MSG,3,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,35000,,,,,,,,,,,"
+        - json_equals:
+            messageType: MSG
+            transmissionType: AirbornePosition
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+            altitude: 0
           metadata_equals:
             kafka_key: ABC123
-        - content_equals: "MSG,4,1,1,00abef,1,2024/01/01,00:00:01.000,2024/01/01,00:00:01.000,,35000,,,,,,,,,,,"
+            dead_letter: ""
+
+  - name: names each transmission type
+    input_batch:
+      - content: "MSG,1,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,BAW123,,,,,,,,,,"
+      - content: "MSG,2,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
+      - content: "MSG,4,1,1,00abef,1,2024/01/01,00:00:01.000,2024/01/01,00:00:01.000,,,,,,,,,,,,,"
+      - content: "MSG,5,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,32000,,,,,,,,,,"
+      - content: "MSG,6,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
+      - content: "MSG,7,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
+      - content: "MSG,8,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
+      - content: "MSG,9,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
+    output_batches:
+      -
+        - json_equals:
+            messageType: MSG
+            transmissionType: Identification
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+            callsign: BAW123
+          metadata_equals:
+            kafka_key: ABC123
+        - json_equals:
+            messageType: MSG
+            transmissionType: SurfacePosition
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+          metadata_equals:
+            kafka_key: ABC123
+        - json_equals:
+            messageType: MSG
+            transmissionType: AirborneVelocity
+            address: 00ABEF
+            generated: "2024-01-01T00:00:01.000"
           metadata_equals:
             kafka_key: 00ABEF
+        - json_equals:
+            messageType: MSG
+            transmissionType: SurveillanceAlt
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+            altitude: 32000
+          metadata_equals:
+            kafka_key: ABC123
+        - json_equals:
+            messageType: MSG
+            transmissionType: SurveillanceId
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+          metadata_equals:
+            kafka_key: ABC123
+        - json_equals:
+            messageType: MSG
+            transmissionType: AirToAir
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+          metadata_equals:
+            kafka_key: ABC123
+        - json_equals:
+            messageType: MSG
+            transmissionType: AllCallReply
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+          metadata_equals:
+            kafka_key: ABC123
+        - json_equals:
+            messageType: MSG
+            transmissionType: Unknown
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+          metadata_equals:
+            kafka_key: ABC123
 
   - name: trims whitespace around the hex ident
     input_batch:
       - content: "MSG,3,1,1, ab12ef ,42,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
     output_batches:
       -
-        - content_equals: "MSG,3,1,1, ab12ef ,42,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
+        - json_equals:
+            messageType: MSG
+            transmissionType: AirbornePosition
+            address: AB12EF
+            generated: "2024-01-01T00:00:00.000"
           metadata_equals:
             kafka_key: AB12EF
+            dead_letter: ""
 
-  - name: publishes a line with an empty hex ident
+  - name: omits a generated time that is not the sbs pattern
+    input_batch:
+      - content: "MSG,3,1,1,abc123,1,not-a-date,00:00:00.000,2024/01/01,00:00:00.000,,100,,,,,,,,,,"
+    output_batches:
+      -
+        - json_equals:
+            messageType: MSG
+            transmissionType: AirbornePosition
+            address: ABC123
+            altitude: 100
+          metadata_equals:
+            kafka_key: ABC123
+
+  - name: omits boolean flags that are not zero or one
+    input_batch:
+      - content: "MSG,3,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,-1,-1,-1,-1"
+    output_batches:
+      -
+        - json_equals:
+            messageType: MSG
+            transmissionType: AirbornePosition
+            address: ABC123
+            generated: "2024-01-01T00:00:00.000"
+          metadata_equals:
+            kafka_key: ABC123
+
+  - name: dead letters a msg line with an empty hex ident
     input_batch:
       - content: "MSG,3,1,1,,7,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
     output_batches:
       -
-        - content_equals: "MSG,3,1,1,,7,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
+        - json_equals:
+            reason: invalid_icao
+            line: "MSG,3,1,1,,7,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
           metadata_equals:
             kafka_key: ""
+            dead_letter: invalid_icao
 
-  - name: publishes a short line
+  - name: dead letters a short msg line
     input_batch:
       - content: "MSG,1,2"
     output_batches:
       -
-        - content_equals: "MSG,1,2"
+        - json_equals:
+            reason: invalid_icao
+            line: "MSG,1,2"
           metadata_equals:
             kafka_key: ""
+            dead_letter: invalid_icao
 
-  - name: publishes non csv text
+  - name: dead letters non csv text
     input_batch:
       - content: "not a basestation message"
     output_batches:
       -
-        - content_equals: "not a basestation message"
+        - json_equals:
+            reason: not_msg
+            line: "not a basestation message"
           metadata_equals:
             kafka_key: ""
+            dead_letter: not_msg
 
-  - name: rejects hex that is not six digits
+  - name: dead letters a non msg record even with a valid address
     input_batch:
-      - content: "MSG,3,1,1,abc12,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
-      - content: "MSG,3,1,1,abc1234,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
-      - content: "MSG,3,1,1,zzzzzz,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
-      - content: "MSG,3,1,1,~abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
+      - content: "STA,3,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
     output_batches:
       -
-        - content_equals: "MSG,3,1,1,abc12,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
+        - json_equals:
+            reason: not_msg
+            line: "STA,3,1,1,abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,,,,,,,,,,,,"
           metadata_equals:
             kafka_key: ""
-        - content_equals: "MSG,3,1,1,abc1234,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
+            dead_letter: not_msg
+
+  - name: dead letters hex that is not six digits
+    input_batch:
+      - content: "MSG,3,1,1,abc12,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
+      - content: "MSG,3,1,1,abc1234,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
+      - content: "MSG,3,1,1,zzzzzz,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
+      - content: "MSG,3,1,1,~abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
+    output_batches:
+      -
+        - json_equals:
+            reason: invalid_icao
+            line: "MSG,3,1,1,abc12,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
           metadata_equals:
             kafka_key: ""
-        - content_equals: "MSG,3,1,1,zzzzzz,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
+            dead_letter: invalid_icao
+        - json_equals:
+            reason: invalid_icao
+            line: "MSG,3,1,1,abc1234,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
           metadata_equals:
-            kafka_key: ""
-        - content_equals: "MSG,3,1,1,~abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,,"
+            dead_letter: invalid_icao
+        - json_equals:
+            reason: invalid_icao
+            line: "MSG,3,1,1,zzzzzz,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
           metadata_equals:
-            kafka_key: ""
+            dead_letter: invalid_icao
+        - json_equals:
+            reason: invalid_icao
+            line: "MSG,3,1,1,~abc123,1,2024/01/01,00:00:00.000,2024/01/01,00:00:00.000,,1,,,,,,,,,,"
+          metadata_equals:
+            dead_letter: invalid_icao
