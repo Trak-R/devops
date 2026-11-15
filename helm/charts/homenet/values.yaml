@@ -10,7 +10,7 @@ components:
 argo-cd:
   fullnameOverride: homenet-argocd
   global:
-    domain: argocd.example.com
+    domain: argocd.vibeify.co
   configs:
     params:
       server.insecure: true
@@ -18,7 +18,7 @@ argo-cd:
     ingress:
       enabled: true
       ingressClassName: traefik
-      hostname: argocd.example.com
+      hostname: argocd.vibeify.co
       tls: false
 
 headlamp:
@@ -31,7 +31,7 @@ headlamp:
     enabled: true
     ingressClassName: traefik
     hosts:
-      - host: headlamp.example.com
+      - host: headlamp.vibeify.co
         paths:
           - path: /
             type: ImplementationSpecific
