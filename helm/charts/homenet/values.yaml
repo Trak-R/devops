@@ -1,25 +1,12 @@
 # Parent flags. These are not passed into the subcharts.
 components:
-  traefik: true
   argocd: true
   cloudflareTunnel: true
   headlamp: true
   openebs: true
 
-# ClusterIP only. Cloudflare Tunnel is the public entry.
-traefik:
-  fullnameOverride: homenet-traefik
-  deployment:
-    replicas: 1
-  ingressClass:
-    enabled: true
-    isDefaultClass: true
-    name: traefik
-  service:
-    spec:
-      type: ClusterIP
-
-# Ingress is served by Traefik. The server speaks HTTP because the tunnel terminates TLS.
+# Ingress is served by the Traefik IngressClass that K3s installs.
+# The server speaks HTTP because the tunnel terminates TLS.
 argo-cd:
   fullnameOverride: homenet-argocd
   global:
@@ -62,9 +49,15 @@ cloudflare-tunnel:
     secretName: homenet-tunnel-credentials
     ingress:
       - hostname: "*.example.com"
-        service: http://homenet-traefik.homenet.svc:80
+        service: http://traefik.kube-system.svc.cluster.local:80
 
-# OpenEBS Local PV LVM uses the chart defaults, including kubelet dir /var/lib/kubelet/.
+# lvm-localpv 1.10.1 mounts the node plugin at lvmNode.kubeletDir.
+# The chart default is /var/lib/kubelet/. K3s uses the path below.
+# global.kubeletDir overrides lvmNode.kubeletDir when it is set; leave it empty.
+lvm-localpv:
+  lvmNode:
+    kubeletDir: /var/lib/rancher/k3s/agent/kubelet
+
 openebs:
   volumeGroup: openebs-vg
   storageClass:

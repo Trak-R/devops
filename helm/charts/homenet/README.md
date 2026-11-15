@@ -1,8 +1,8 @@
 # homenet
 
-Platform chart for a HomeNet cluster. One release installs Traefik, Argo CD, Cloudflare Tunnel, Headlamp, and the OpenEBS Local PV LVM driver.
+Platform chart for a HomeNet cluster. One release installs Argo CD, Cloudflare Tunnel, Headlamp, and the OpenEBS Local PV LVM driver. K3s installs and manages Traefik.
 
-Cloudflare Tunnel is the only public entry. It forwards `*.example.com` to the Traefik ClusterIP. Traefik routes by Host, so an application chart publishes a hostname with an Ingress and does not change the tunnel rules. The hostname has to sit under `example.com`.
+Cloudflare Tunnel is the only public entry. It forwards `*.example.com` to the K3s Traefik service at `http://traefik.kube-system.svc.cluster.local:80`. Traefik routes by Host, so an application chart publishes a hostname with an Ingress and does not change the tunnel rules. The hostname has to sit under `example.com`. Argo CD and Headlamp use the K3s `traefik` IngressClass.
 
 ```bash
 helm dependency build charts/homenet
@@ -11,9 +11,7 @@ helm upgrade --install homenet charts/homenet --namespace homenet --create-names
 
 ## Before install
 
-On k3s, start the server with `--disable=traefik`. The bundled controller would also claim the `traefik` IngressClass.
-
-Nodes that should provision volumes need `lvm2` and a volume group named `openebs-vg`. The dev Terraform module creates that group on a blank secondary disk. The chart creates StorageClass `openebs-lvmpv` and does not mark it default, so it does not replace k3s `local-path`.
+Nodes that should provision volumes need `lvm2` and a volume group named `openebs-vg`. The dev Terraform module creates that group on a blank secondary disk. The chart creates StorageClass `openebs-lvmpv` and does not mark it default, so it does not replace k3s `local-path`. The OpenEBS LVM node mounts the K3s kubelet directory `/var/lib/rancher/k3s/agent/kubelet`.
 
 Create the tunnel credential Secret in the install namespace. `credentials.json` is the file written by `cloudflared tunnel create`. Leave `cloudflare.secret` empty.
 

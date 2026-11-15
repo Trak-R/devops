@@ -60,6 +60,17 @@ variable "control_plane_disk_gb" {
   default     = 64
 }
 
+variable "control_plane_memory_mb" {
+  description = "Memory allocated to the K3s control plane in MB"
+  type        = number
+  default     = 8192
+
+  validation {
+    condition     = var.control_plane_memory_mb >= 2048
+    error_message = "Control plane memory must be at least 2048 MB."
+  }
+}
+
 variable "data_disk_gb" {
   description = "Secondary disk size in GiB for persistent storage on the dev control plane. Set to 0 to omit it."
   type        = number
