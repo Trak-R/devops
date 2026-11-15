@@ -114,7 +114,7 @@ spec:
     - metadata:
         name: data
         labels:
-          {{- include "trakr.postgresql.labels" . | nindent 10 }}
+          {{- include "trakr.postgresql.selectorLabels" . | nindent 10 }}
       spec:
         accessModes:
           - ReadWriteOnce
