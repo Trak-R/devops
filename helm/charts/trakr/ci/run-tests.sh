@@ -83,7 +83,7 @@ require(adsb, "$fields.index(4)", "icao field")
 require(adsb, 're_match("^[0-9A-F]{6}$")', "icao check")
 require(adsb, "meta kafka_key = if $valid", "icao metadata")
 require(adsb, "switch:", "output switch")
-require(adsb, 'meta("dead_letter") == ""', "main topic gate")
+require(adsb, 'meta("dead_letter") == null', "main topic gate")
 require(adsb, 'topic: "adsb.basestation"', "normalized topic")
 require(adsb, 'topic: "adsb.basestation.dlq"', "dead letter topic")
 if "kafka_key" in trakr.split("redpanda-connect.yaml:")[1].split("kind:")[0]:

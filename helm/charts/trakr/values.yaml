@@ -169,6 +169,7 @@ connect:
             }
 
             meta kafka_key = if $valid { $candidate } else { "" }
+            # An empty string deletes the metadata key. Valid lines leave dead_letter unset.
             meta dead_letter = if $valid { "" } else { $reason }
 
             root = if !$valid {
@@ -198,7 +199,8 @@ connect:
     output:
       switch:
         cases:
-          - check: 'meta("dead_letter") == ""'
+          # Valid lines have no dead_letter key. Comparing with "" does not match null.
+          - check: 'meta("dead_letter") == null'
             output:
               label: adsb_basestation_out
               redpanda:
