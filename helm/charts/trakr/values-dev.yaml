@@ -3,3 +3,7 @@ replicaCount: 1
 ingress:
   enabled: false
   host: trakr.vibeify.co
+
+postgresql:
+  persistence:
+    storageClass: openebs-lvmpv
