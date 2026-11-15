@@ -106,7 +106,7 @@ connect:
   config: |
     {{- if .Values.adsb.enabled }}
     input:
-      label: adsb_basestation
+      label: adsb_basestation_in
       socket:
         network: tcp
         address: {{ required "connect.adsb.address is required when connect.adsb.enabled is true. Set it to the BaseStation feed host:port." .Values.adsb.address | quote }}
@@ -114,7 +114,7 @@ connect:
           lines:
             omit_empty: true
     output:
-      label: adsb_basestation
+      label: adsb_basestation_out
       redpanda:
         seed_brokers:
           - {{ .Values.adsb.broker | quote }}
