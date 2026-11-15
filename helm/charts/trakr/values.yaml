@@ -54,6 +54,7 @@ components:
   redpanda: true
   connect: true
   postgresql: true
+  pgadmin: true
 
 # Official Redpanda chart. One broker, in-cluster only, TLS and Console off.
 # Resource and volume defaults come from that chart (1 core, 2.5Gi memory, 20Gi volume).
@@ -114,6 +115,33 @@ postgresql:
   resources:
     requests:
       cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+# pgAdmin web UI for the Postgres instance above. The image runs as UID 5050
+# and listens on 8080 because the pod cannot bind privileged ports.
+# Empty password generates one on install and keeps it across upgrades.
+# existingSecret must contain PGADMIN_DEFAULT_PASSWORD.
+pgadmin:
+  image:
+    repository: dpage/pgadmin4
+    tag: "9.19.0"
+    pullPolicy: IfNotPresent
+  auth:
+    email: admin@example.com
+    password: ""
+    existingSecret: ""
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    host: chart-example.local
+    path: /
+    pathType: Prefix
+  resources:
+    requests:
+      cpu: 50m
       memory: 256Mi
     limits:
       memory: 1Gi

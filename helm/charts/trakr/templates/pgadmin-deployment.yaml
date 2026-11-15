@@ -1,0 +1,149 @@
+{{- if .Values.components.pgadmin }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trakr.pgadmin.fullname" . }}
+  labels:
+    {{- include "trakr.pgadmin.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "trakr.pgadmin.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "trakr.pgadmin.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include "trakr.pgadmin.secretName" . | sha256sum }}
+        {{- if .Values.components.postgresql }}
+        checksum/servers: {{ include (print $.Template.BasePath "/pgadmin-configmap.yaml") . | sha256sum }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 5050
+        runAsGroup: 0
+        fsGroup: 5050
+        seccompProfile:
+          type: RuntimeDefault
+      {{- if .Values.components.postgresql }}
+      initContainers:
+        - name: pgpass
+          image: "{{ .Values.pgadmin.image.repository }}:{{ .Values.pgadmin.image.tag }}"
+          imagePullPolicy: {{ .Values.pgadmin.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -eu
+              user=${POSTGRES_USER//\\/\\\\}
+              user=${user//:/\\:}
+              pw=${POSTGRES_PASSWORD//\\/\\\\}
+              pw=${pw//:/\\:}
+              printf '%s:5432:*:%s:%s\n' "$PGHOST" "$user" "$pw" > /pgpass/pgpass
+              chmod 600 /pgpass/pgpass
+          env:
+            - name: PGHOST
+              value: {{ include "trakr.postgresql.fullname" . | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "trakr.postgresql.secretName" . }}
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "trakr.postgresql.secretName" . }}
+                  key: POSTGRES_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: pgpass
+              mountPath: /pgpass
+      {{- end }}
+      containers:
+        - name: pgadmin
+          image: "{{ .Values.pgadmin.image.repository }}:{{ .Values.pgadmin.image.tag }}"
+          imagePullPolicy: {{ .Values.pgadmin.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              value: {{ .Values.pgadmin.auth.email | quote }}
+            - name: PGADMIN_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "trakr.pgadmin.secretName" . }}
+                  key: PGADMIN_DEFAULT_PASSWORD
+            - name: PGADMIN_DISABLE_POSTFIX
+              value: "1"
+            - name: PGADMIN_LISTEN_PORT
+              value: "8080"
+            - name: PGADMIN_LISTEN_ADDRESS
+              value: 0.0.0.0
+            {{- if .Values.components.postgresql }}
+            - name: PGADMIN_REPLACE_SERVERS_ON_STARTUP
+              value: "True"
+            - name: PGPASS_FILE
+              value: /pgpass/pgpass
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /misc/ping
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /misc/ping
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /misc/ping
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.pgadmin.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgadmin
+            {{- if .Values.components.postgresql }}
+            - name: servers
+              mountPath: /pgadmin4/servers.json
+              subPath: servers.json
+              readOnly: true
+            - name: pgpass
+              mountPath: /pgpass
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: data
+          emptyDir: {}
+        {{- if .Values.components.postgresql }}
+        - name: pgpass
+          emptyDir: {}
+        - name: servers
+          configMap:
+            name: {{ include "trakr.pgadmin.fullname" . }}
+        {{- end }}
+{{- end }}

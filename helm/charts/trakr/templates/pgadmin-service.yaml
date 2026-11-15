@@ -1,0 +1,17 @@
+{{- if .Values.components.pgadmin }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trakr.pgadmin.fullname" . }}
+  labels:
+    {{- include "trakr.pgadmin.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "trakr.pgadmin.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -27,3 +27,14 @@ Postgres: {{ include "trakr.postgresql.fullname" . }}.{{ .Release.Namespace }}.s
   user: {{ .Values.postgresql.auth.username }}
   password: kubectl get secret -n {{ .Release.Namespace }} {{ include "trakr.postgresql.secretName" . }} -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d
 {{- end }}
+{{- if .Values.components.pgadmin }}
+
+pgAdmin:
+{{- if .Values.pgadmin.ingress.enabled }}
+  https://{{ .Values.pgadmin.ingress.host }}{{ .Values.pgadmin.ingress.path }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "trakr.pgadmin.fullname" . }} 8080:80
+{{- end }}
+  email: {{ .Values.pgadmin.auth.email }}
+  password: kubectl get secret -n {{ .Release.Namespace }} {{ include "trakr.pgadmin.secretName" . }} -o jsonpath='{.data.PGADMIN_DEFAULT_PASSWORD}' | base64 -d
+{{- end }}

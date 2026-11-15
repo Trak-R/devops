@@ -65,3 +65,28 @@ app.kubernetes.io/component: postgresql
 app.kubernetes.io/version: {{ .Values.postgresql.image.tag | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
+
+{{- define "trakr.pgadmin.fullname" -}}
+{{- printf "%s-pgadmin" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "trakr.pgadmin.secretName" -}}
+{{- if .Values.pgadmin.auth.existingSecret }}
+{{- .Values.pgadmin.auth.existingSecret }}
+{{- else }}
+{{- include "trakr.pgadmin.fullname" . }}
+{{- end }}
+{{- end }}
+
+{{- define "trakr.pgadmin.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "trakr.pgadmin.fullname" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "trakr.pgadmin.labels" -}}
+helm.sh/chart: {{ include "trakr.chart" . }}
+{{ include "trakr.pgadmin.selectorLabels" . }}
+app.kubernetes.io/component: pgadmin
+app.kubernetes.io/version: {{ .Values.pgadmin.image.tag | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}

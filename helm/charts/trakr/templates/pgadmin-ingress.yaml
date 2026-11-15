@@ -1,0 +1,27 @@
+{{- if and .Values.components.pgadmin .Values.pgadmin.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "trakr.pgadmin.fullname" . }}
+  labels:
+    {{- include "trakr.pgadmin.labels" . | nindent 4 }}
+  {{- with .Values.pgadmin.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.pgadmin.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.pgadmin.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.pgadmin.ingress.path }}
+            pathType: {{ .Values.pgadmin.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "trakr.pgadmin.fullname" . }}
+                port:
+                  name: http
+{{- end }}

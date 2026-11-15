@@ -1,0 +1,23 @@
+{{- if and .Values.components.pgadmin .Values.components.postgresql }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "trakr.pgadmin.fullname" . }}
+  labels:
+    {{- include "trakr.pgadmin.labels" . | nindent 4 }}
+data:
+  servers.json: |
+    {
+      "Servers": {
+        "1": {
+          "Name": "TrakR",
+          "Group": "Servers",
+          "Host": {{ include "trakr.postgresql.fullname" . | quote }},
+          "Port": 5432,
+          "MaintenanceDB": {{ .Values.postgresql.auth.database | quote }},
+          "Username": {{ .Values.postgresql.auth.username | quote }},
+          "SSLMode": "prefer"
+        }
+      }
+    }
+{{- end }}

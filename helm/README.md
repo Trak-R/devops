@@ -24,7 +24,7 @@ The Helm workflow installs this chart as release `trakr`. In that namespace the 
 
 The Redpanda chart would otherwise name its Service `trakr`, which is the application Service, so `redpanda.fullnameOverride` is `trakr-redpanda`. Connect's Service name comes from `connect.nameOverride`. Replace `connect.config` with a real pipeline; the default generates one placeholder message per second so the pod stays up. Postgres keeps its password in the `trakr-postgresql` Secret (`POSTGRES_PASSWORD`). Set `postgresql.auth.existingSecret` to supply `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` yourself. `postgresql.auth.username` and `postgresql.auth.database` must match that Secret, because the probes read them.
 
-Redpanda runs one broker with TLS, external access, and Console turned off. Its chart still requests 1 core, 2.5Gi of memory, and a 20Gi volume. Postgres uses `postgres:17`, a 10Gi volume, and the cluster default storage class.
+Redpanda runs one broker with TLS, external access, and Console turned off. Its chart still requests 1 core, 2.5Gi of memory, and a 20Gi volume. Postgres uses `postgres:17`, a 10Gi volume, and the cluster default storage class. pgAdmin is included when `components.pgadmin` is true. Its login password is generated into the `trakr-pgadmin` Secret (`PGADMIN_DEFAULT_PASSWORD`). Dev serves it at `https://trakr-pgadmin.vibeify.co` and preloads the TrakR Postgres server.
 
 Deploy runs only from the **Helm** workflow dispatch, and that workflow installs this chart. Add a base64-encoded kubeconfig as the `KUBECONFIG_B64` secret on the target GitHub Environment before the first deploy. The workflow does not create that secret.
 

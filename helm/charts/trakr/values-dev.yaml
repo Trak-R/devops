@@ -8,6 +8,14 @@ postgresql:
   persistence:
     storageClass: openebs-lvmpv
 
+pgadmin:
+  auth:
+    email: admin@vibeify.co
+  ingress:
+    enabled: true
+    className: traefik
+    host: trakr-pgadmin.vibeify.co
+
 redpanda:
   storage:
     persistentVolume:
