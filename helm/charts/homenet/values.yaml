@@ -54,7 +54,7 @@ cloudflared:
 # global.kubeletDir overrides lvmNode.kubeletDir when it is set; leave it empty.
 lvm-localpv:
   lvmNode:
-    kubeletDir: /var/lib/rancher/k3s/agent/kubelet
+    kubeletDir: /var/lib/kubelet
 
 openebs:
   volumeGroup: openebs-vg
