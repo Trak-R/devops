@@ -66,6 +66,23 @@ app.kubernetes.io/version: {{ .Values.postgresql.image.tag | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+{{- define "trakr.adsbSimulator.fullname" -}}
+{{- printf "%s-adsb-simulator" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "trakr.adsbSimulator.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "trakr.adsbSimulator.fullname" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "trakr.adsbSimulator.labels" -}}
+helm.sh/chart: {{ include "trakr.chart" . }}
+{{ include "trakr.adsbSimulator.selectorLabels" . }}
+app.kubernetes.io/component: adsb-simulator
+app.kubernetes.io/version: {{ .Values.adsbSimulator.image.tag | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
 {{- define "trakr.pgadmin.fullname" -}}
 {{- printf "%s-pgadmin" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}

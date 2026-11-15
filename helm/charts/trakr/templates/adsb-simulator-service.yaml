@@ -1,0 +1,17 @@
+{{- if .Values.components.adsbSimulator }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trakr.adsbSimulator.fullname" . }}
+  labels:
+    {{- include "trakr.adsbSimulator.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: feed
+      port: {{ .Values.adsbSimulator.port }}
+      targetPort: feed
+      protocol: TCP
+  selector:
+    {{- include "trakr.adsbSimulator.selectorLabels" . | nindent 4 }}
+{{- end }}

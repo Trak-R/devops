@@ -1,5 +1,8 @@
 replicaCount: 0
 
+components:
+  adsbSimulator: true
+
 ingress:
   enabled: false
   host: trakr.vibeify.co
@@ -25,8 +28,8 @@ redpanda:
         storageClass: openebs-lvmpv
 
 adsbtracker:
+  feed:
+    host: trakr-adsb-simulator
+    port: 30003
   persistence:
     storageClass: openebs-lvmpv
-
-components:
-  adsbtracker: true

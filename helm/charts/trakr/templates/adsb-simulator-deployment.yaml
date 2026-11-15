@@ -1,0 +1,60 @@
+{{- if .Values.components.adsbSimulator }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trakr.adsbSimulator.fullname" . }}
+  labels:
+    {{- include "trakr.adsbSimulator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "trakr.adsbSimulator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "trakr.adsbSimulator.selectorLabels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: adsb-simulator
+          image: "{{ .Values.adsbSimulator.image.repository }}:{{ .Values.adsbSimulator.image.tag }}"
+          imagePullPolicy: {{ .Values.adsbSimulator.image.pullPolicy }}
+          ports:
+            - name: feed
+              containerPort: {{ .Values.adsbSimulator.port }}
+              protocol: TCP
+          env:
+            - name: SIMULATOR_BIND_ADDRESS
+              value: "0.0.0.0"
+          startupProbe:
+            tcpSocket:
+              port: feed
+            periodSeconds: 5
+            failureThreshold: 12
+          readinessProbe:
+            tcpSocket:
+              port: feed
+          livenessProbe:
+            tcpSocket:
+              port: feed
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1654
+            runAsGroup: 1654
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          {{- with .Values.adsbSimulator.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

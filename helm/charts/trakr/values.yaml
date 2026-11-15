@@ -57,6 +57,7 @@ components:
   pgadmin: true
   # Tracker Hub requires image.repository, image.tag, and feed.host before this is true.
   adsbtracker: false
+  adsbSimulator: false
 
 # Official Redpanda chart. One broker, in-cluster only, TLS and Console off.
 # Resource and volume defaults come from that chart (1 core, 2.5Gi memory, 20Gi volume).
@@ -120,6 +121,22 @@ postgresql:
       memory: 256Mi
     limits:
       memory: 1Gi
+
+# ADS-B receiver simulator. Listens for BaseStation clients on port 30003.
+# The image must be built from ADS-B-BaseStationReader docker/Dockerfile.simulator.
+# SIMULATOR_BIND_ADDRESS makes that build accept connections on the pod address.
+adsbSimulator:
+  image:
+    repository: ghcr.io/trak-r/adsb-simulator
+    tag: "2.39.0"
+    pullPolicy: IfNotPresent
+  port: 30003
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
 
 # Tracker Hub chart oci://ghcr.io/trak-r/charts/adsbtracker. Same release and namespace as this chart.
 # image.repository, image.tag, and feed.host are required when components.adsbtracker is true.
