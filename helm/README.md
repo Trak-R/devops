@@ -39,7 +39,7 @@ Redpanda runs one broker with TLS, external access, and Console turned off. Its 
 
 `components.adsbtracker` defaults to false. Turning it on renders Tracker Hub from `oci://ghcr.io/trak-r/charts/adsbtracker` in the TrakR release namespace. Set `adsbtracker.image.repository`, `adsbtracker.image.tag`, and `adsbtracker.feed.host` in the same values file. Dev sets `adsbtracker.persistence.storageClass` to `openebs-lvmpv` and points the feed at `trakr-adsb-simulator:30003`.
 
-`components.adsbSimulator` defaults to false. Dev turns it on. The Service is `trakr-adsb-simulator` on port 30003. The image is `ghcr.io/trak-r/adsb-simulator:2.39.0`, built from `docker/Dockerfile.simulator` in the ADS-B repository.
+`components.adsbSimulator` defaults to false. Dev turns it on. The Service is `trakr-adsb-simulator` on port 30003. Dev pins `ghcr.io/trak-r/ads-b-basestationreader` to the commit SHA of the latest ADS-B deploy.
 
 Deploy runs only from the **Helm** workflow dispatch, and that workflow installs this chart. Add a base64-encoded kubeconfig as the `KUBECONFIG_B64` secret on the target GitHub Environment before the first deploy. The workflow does not create that secret.
 

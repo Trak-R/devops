@@ -128,12 +128,12 @@ postgresql:
       memory: 1Gi
 
 # ADS-B receiver simulator. Listens for BaseStation clients on port 30003.
-# The image must be built from ADS-B-BaseStationReader docker/Dockerfile.simulator.
+# The image is the ADS-B repository package. CI tags it with the commit SHA, not a version.
 # SIMULATOR_BIND_ADDRESS makes that build accept connections on the pod address.
 adsbSimulator:
   image:
-    repository: ghcr.io/trak-r/adsb-simulator
-    tag: "2.39.0"
+    repository: ghcr.io/trak-r/ads-b-basestationreader
+    tag: ""
     pullPolicy: IfNotPresent
   port: 30003
   resources:
