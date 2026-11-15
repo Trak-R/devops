@@ -70,6 +70,9 @@ components:
 # "trakr", which is also the application Service, so the broker name is pinned here.
 redpanda:
   fullnameOverride: trakr-redpanda
+  config:
+    cluster:
+      auto_create_topics_enabled: true
   statefulset:
     replicas: 1
   tls:
