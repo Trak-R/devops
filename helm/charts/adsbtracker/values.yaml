@@ -65,7 +65,8 @@ resources:
     memory: 1Gi
 
 # Tracker Hub has no user authentication. Keep the Service private, or enable
-# ingress and enforce access control on the proxy. TLS terminates at the ingress.
+# ingress and enforce access control on the proxy. Set tls.enabled when the
+# Ingress terminates TLS. Leave it off when a proxy in front of the class does.
 ingress:
   enabled: false
   className: ""

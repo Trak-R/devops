@@ -2,7 +2,9 @@
 
 Helm chart for a single Tracker Hub pod. The pod stores observations in SQLite, so the chart runs one replica and keeps the database, write spool, and tracking profiles on ReadWriteOnce volumes.
 
-Tracker Hub does not authenticate users. Leave the Service as ClusterIP, or enable the Ingress and enforce access control on the proxy. TLS terminates at the Ingress. The pod serves HTTP on port 5000 and exposes `GET /health`.
+Tracker Hub does not authenticate users. Leave the Service as ClusterIP, or enable the Ingress and enforce access control on the proxy. The pod serves HTTP on port 5000 and exposes `GET /health`.
+
+The container runs as UID 1654 and cannot write the image workdir. The chart puts the SQLite database and log on the data volume, and tracking profiles on the profiles volume. `WebUi__UseHttpsRedirection` stays true. Setting it false makes this image bind port 5000 twice. `Kestrel__Endpoints__Https__Url` is plain HTTP on `127.0.0.1:5001` so Kestrel does not look for a developer certificate.
 
 ## Build the image
 
@@ -44,16 +46,13 @@ Changing the ConfigMap or the chart-managed Secret rolls the pod. After rotating
 ```yaml
 ingress:
   enabled: true
-  className: nginx
+  className: traefik
   host: tracker.example.com
   tls:
-    enabled: true
-    secretName: tracker-tls
-  annotations:
-    nginx.ingress.kubernetes.io/auth-url: "https://auth.example.com/oauth2/auth"
+    enabled: false
 ```
 
-The chart sets nginx proxy read and send timeouts to 3600 seconds so Blazor Server and `/hubs/aircraft` WebSocket connections stay open. Extra annotations are merged on top of those timeouts.
+Set `ingress.tls.enabled` when the Ingress itself terminates TLS, and set `ingress.tls.secretName` to that certificate. Leave TLS off when Cloudflare or another proxy in front of Traefik terminates it. The chart sets nginx proxy read and send timeouts to 3600 seconds so Blazor Server and `/hubs/aircraft` WebSocket connections stay open. Extra annotations are merged on top of those timeouts.
 
 ## Upgrade and backup
 

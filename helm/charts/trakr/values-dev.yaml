@@ -1,7 +1,7 @@
 replicaCount: 0
 
 components:
-  adsbSimulator: true
+  adsbtracker: true
 
 ingress:
   enabled: false
@@ -27,14 +27,16 @@ redpanda:
       persistentVolume:
         storageClass: openebs-lvmpv
 
-adsbSimulator:
-  image:
-    tag: "6ffe327e88a1715049acd397f32923ddd73b7393"
-
 adsbtracker:
   image:
     repository: ghcr.io/trak-r/ads-b-basestationreader
     tag: "6ffe327e88a1715049acd397f32923ddd73b7393"
+  ingress:
+    enabled: true
+    className: traefik
+    host: trakr-adsbtracker.vibeify.co
+    tls:
+      enabled: false
   feed:
     host: trakr-adsb-simulator
     port: 30003

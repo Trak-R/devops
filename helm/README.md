@@ -37,9 +37,7 @@ The Redpanda chart would otherwise name its Service `trakr`, which is the applic
 
 Redpanda runs one broker with TLS, external access, and Console turned off. Its chart still requests 1 core, 2.5Gi of memory, and a 20Gi volume. Postgres uses `postgres:17`, a 10Gi volume, and the cluster default storage class. pgAdmin is included when `components.pgadmin` is true. Its login password is generated into the `trakr-pgadmin` Secret (`PGADMIN_DEFAULT_PASSWORD`). Dev serves it at `https://trakr-pgadmin.vibeify.co` and preloads the TrakR Postgres server.
 
-`components.adsbtracker` defaults to false. Turning it on renders Tracker Hub from `oci://ghcr.io/trak-r/charts/adsbtracker` in the TrakR release namespace. Set `adsbtracker.image.repository`, `adsbtracker.image.tag`, and `adsbtracker.feed.host` in the same values file. Dev sets `adsbtracker.persistence.storageClass` to `openebs-lvmpv` and points the feed at `trakr-adsb-simulator:30003`.
-
-`components.adsbSimulator` defaults to false. Dev turns it on. The Service is `trakr-adsb-simulator` on port 30003. Dev pins `ghcr.io/trak-r/ads-b-basestationreader` to the commit SHA of the latest ADS-B deploy.
+`components.adsbtracker` defaults to false. Turning it on renders Tracker Hub from `oci://ghcr.io/trak-r/charts/adsbtracker` in the TrakR release namespace. Set `adsbtracker.image.repository`, `adsbtracker.image.tag`, and `adsbtracker.feed.host` in the same values file. Dev turns it on, sets `adsbtracker.persistence.storageClass` to `openebs-lvmpv`, and serves the chart Ingress at `https://trakr-adsbtracker.vibeify.co`. That Ingress is HTTP and Traefik. Add the hostname on the Cloudflare tunnel. Database path, log path, profiles path, and the Kestrel bind settings live in the adsbtracker chart.
 
 Deploy runs only from the **Helm** workflow dispatch, and that workflow installs this chart. Add a base64-encoded kubeconfig as the `KUBECONFIG_B64` secret on the target GitHub Environment before the first deploy. The workflow does not create that secret.
 

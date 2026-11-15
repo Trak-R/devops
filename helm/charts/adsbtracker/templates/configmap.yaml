@@ -9,6 +9,9 @@ data:
   ApplicationSettings__Port: {{ .Values.feed.port | quote }}
   ApplicationSettings__LogFile: {{ printf "%s/TrackerHub.log" (include "adsbtracker.dataMount" .) | quote }}
   WebUi__TrackingProfilesPath: {{ include "adsbtracker.profilesMount" . | quote }}
+  # The image binds configured Kestrel endpoints, then calls ListenAnyIP on the
+  # HTTP port when this is false. Leave it on so port 5000 is bound once.
+  # The HTTPS endpoint stays on HTTP so Kestrel does not look for a developer certificate.
   WebUi__UseHttpsRedirection: "true"
   Kestrel__Endpoints__Https__Url: http://127.0.0.1:5001
   ConnectionStrings__BaseStationReaderDB: {{ printf "Data Source=%s/aircrafttracker.db;Default Timeout=5;Pooling=True" (include "adsbtracker.dataMount" .) | quote }}
