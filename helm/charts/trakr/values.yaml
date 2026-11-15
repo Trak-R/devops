@@ -69,6 +69,14 @@ redpanda:
     enabled: false
   console:
     enabled: false
+  # Empty uses the cluster default. The datadir claim is created by default.
+  # The tiered claim is created when storage.tiered.mountType is persistentVolume.
+  storage:
+    persistentVolume:
+      storageClass: ""
+    tiered:
+      persistentVolume:
+        storageClass: ""
 
 # Official Redpanda Connect chart. Replace config with a real pipeline.
 # This placeholder stays running so the pod does not exit.

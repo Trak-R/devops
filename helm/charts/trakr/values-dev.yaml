@@ -7,3 +7,11 @@ ingress:
 postgresql:
   persistence:
     storageClass: openebs-lvmpv
+
+redpanda:
+  storage:
+    persistentVolume:
+      storageClass: openebs-lvmpv
+    tiered:
+      persistentVolume:
+        storageClass: openebs-lvmpv
