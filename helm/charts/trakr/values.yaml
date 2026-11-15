@@ -63,7 +63,8 @@ components:
   # Tracker Hub requires image.repository, image.tag, and feed.host before this is true.
   adsbtracker: false
 
-# Official Redpanda chart. One broker, in-cluster only, TLS and Console off.
+# Official Redpanda chart. One broker, in-cluster only, TLS off.
+# Console stays off here. Dev turns it on at https://trakr-redpanda.vibeify.co.
 # Resource and volume defaults come from that chart (1 core, 2.5Gi memory, 20Gi volume).
 # That chart names its Service after the Helm release. This chart's release is
 # "trakr", which is also the application Service, so the broker name is pinned here.

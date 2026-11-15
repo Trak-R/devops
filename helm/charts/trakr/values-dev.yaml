@@ -20,6 +20,16 @@ pgadmin:
     host: trakr-pgadmin.vibeify.co
 
 redpanda:
+  console:
+    enabled: true
+    ingress:
+      enabled: true
+      className: traefik
+      hosts:
+        - host: trakr-redpanda.vibeify.co
+          paths:
+            - path: /
+              pathType: Prefix
   storage:
     persistentVolume:
       storageClass: openebs-lvmpv
