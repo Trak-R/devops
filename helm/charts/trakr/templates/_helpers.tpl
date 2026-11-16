@@ -91,6 +91,64 @@ app.kubernetes.io/version: {{ .Values.pgadmin.image.tag | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+{{- define "trakr.api.fullname" -}}
+{{- printf "%s-api" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "trakr.api.secretName" -}}
+{{- if .Values.api.auth.existingSecret }}
+{{- .Values.api.auth.existingSecret }}
+{{- else }}
+{{- include "trakr.api.fullname" . }}
+{{- end }}
+{{- end }}
+
+{{- define "trakr.api.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "trakr.api.fullname" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "trakr.api.labels" -}}
+helm.sh/chart: {{ include "trakr.chart" . }}
+{{ include "trakr.api.selectorLabels" . }}
+app.kubernetes.io/component: api
+app.kubernetes.io/version: {{ .Values.api.image.tag | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{- define "trakr.api.env" -}}
+- name: DB_HOST
+  value: {{ include "trakr.postgresql.fullname" . | quote }}
+- name: DB_PORT
+  value: "5432"
+- name: DB_USER
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "trakr.postgresql.secretName" . }}
+      key: POSTGRES_USER
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "trakr.postgresql.secretName" . }}
+      key: POSTGRES_PASSWORD
+- name: DB_NAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "trakr.postgresql.secretName" . }}
+      key: POSTGRES_DB
+- name: SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "trakr.api.secretName" . }}
+      key: SECRET_KEY
+- name: DEBUG
+  value: "false"
+- name: LOG_FILE
+  value: ""
+- name: CORS_ORIGINS
+  value: {{ .Values.api.corsOrigins | toJson | quote }}
+{{- end }}
+
 {{- define "trakr.simulator.fullname" -}}
 {{- printf "%s-simulator" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}

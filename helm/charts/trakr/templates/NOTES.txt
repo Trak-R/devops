@@ -40,6 +40,17 @@ Postgres: {{ include "trakr.postgresql.fullname" . }}.{{ .Release.Namespace }}.s
   user: {{ .Values.postgresql.auth.username }}
   password: kubectl get secret -n {{ .Release.Namespace }} {{ include "trakr.postgresql.secretName" . }} -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d
 {{- end }}
+{{- if .Values.components.api }}
+
+API:
+{{- if .Values.api.ingress.enabled }}
+  https://{{ .Values.api.ingress.host }}{{ .Values.api.ingress.path }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "trakr.api.fullname" . }} 8000:{{ .Values.api.service.port }}
+{{- end }}
+  health: /health
+  secret: kubectl get secret -n {{ .Release.Namespace }} {{ include "trakr.api.secretName" . }} -o jsonpath='{.data.SECRET_KEY}' | base64 -d
+{{- end }}
 {{- if .Values.components.pgadmin }}
 
 pgAdmin:

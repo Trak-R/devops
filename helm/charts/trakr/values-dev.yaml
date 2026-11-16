@@ -2,6 +2,7 @@ replicaCount: 0
 
 components:
   simulator: false
+  api: false
 
 ingress:
   enabled: false
@@ -46,3 +47,14 @@ simulator:
 connect:
   adsb:
     enabled: false
+
+# components.api stays false until api.image.tag is a published SHA.
+# deploy-dev writes that tag and does not change the flag.
+api:
+  image:
+    repository: ghcr.io/trak-r/api
+    tag: ""
+  ingress:
+    enabled: true
+    className: traefik
+    host: trakr-api.vibeify.co

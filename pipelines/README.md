@@ -53,7 +53,11 @@ If this repository is private, its Actions access policy must allow the adsbtrac
 
 ## api
 
-`pipelines/api` installs uv and Python 3.12, syncs the lockfile with `uv sync --frozen --all-packages`, then runs `uv run pytest`, `uv run ruff check .`, and `uv run ruff format --check .`. A failed check stops the job before `container-push` and `cve-scan`. The Dockerfile is `apps/api/Dockerfile` and the build context is the repository root. The image is the API, published as `ghcr.io/<owner>/<repo>:<commit sha>`, lowercased. Celery worker and beat use that same image. The persistence worker and anomaly detector are not published. Every call publishes an image, including pull requests. The tag is the caller commit SHA.
+`pipelines/api` installs uv and Python 3.12, syncs the lockfile with `uv sync --frozen --all-packages`, then runs `uv run pytest`, `uv run ruff check .`, and `uv run ruff format --check .`. A failed check stops the job before `container-push` and `cve-scan`. The Dockerfile is `apps/api/Dockerfile` and the build context is the repository root. The image is the API, published as `ghcr.io/<owner>/<repo>:<commit sha>`, lowercased. Celery worker and beat can use that same image. The chart deploys the API process only. The persistence worker and anomaly detector are not published. Every call publishes an image, including pull requests. The tag is the caller commit SHA.
+
+On a push to `main`, after the image push and the CVE scan succeed, the `deploy-dev` job sets `api.image.tag` in `helm/charts/trakr/values-dev.yaml` to the merge commit SHA and pushes the commit to `main` on `Trak-R/devops`. The job changes that tag only. `components.api` stays as it is in the file. The job runs with concurrency group `deploy-dev-helm-charts-trakr-values-dev` and `cancel-in-progress: false`, so an API merge and a simulator merge update the file one after another. A failed test, image push, or CVE scan skips the job.
+
+The caller passes `DEVOPS_TOKEN`, a fine-grained PAT with contents write on `Trak-R/devops`. The token must be allowed to push to `main`. Pull requests can omit the secret. A push to `main` with an empty token fails `deploy-dev`.
 
 The api repository calls `.github/workflows/api.yml`. The caller must grant `contents: read` and `packages: write`. A called workflow cannot raise those permissions.
 
@@ -69,6 +73,8 @@ permissions:
 jobs:
   ci:
     uses: Trak-R/devops/.github/workflows/api.yml@main
+    secrets:
+      DEVOPS_TOKEN: ${{ secrets.DEVOPS_TOKEN }}
 ```
 
 If this repository is private, its Actions access policy must allow the api repository to call the workflow. Pull requests from forks do not receive secrets or `packages: write`.

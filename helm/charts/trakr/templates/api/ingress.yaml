@@ -1,0 +1,27 @@
+{{- if and .Values.components.api .Values.api.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "trakr.api.fullname" . }}
+  labels:
+    {{- include "trakr.api.labels" . | nindent 4 }}
+  {{- with .Values.api.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.api.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.api.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.api.ingress.path }}
+            pathType: {{ .Values.api.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "trakr.api.fullname" . }}
+                port:
+                  name: http
+{{- end }}

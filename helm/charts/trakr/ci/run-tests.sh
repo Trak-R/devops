@@ -95,6 +95,8 @@ if "kafka_key" in placeholder or "murmur2_hash" in placeholder:
     sys.exit("placeholder pipeline should not publish ADS-B records")
 if "trakr.dev/topics-checksum:" not in adsb:
     sys.exit("topics checksum annotation missing")
+if "name: trakr-api" in trakr or "name: trakr-api" in adsb:
+    sys.exit("api rendered while components.api is false")
 print("render assertions passed")
 PY
 
@@ -190,6 +192,85 @@ connect:
         config: {}
 EOF
 expect_fail "deadLetterTopic" --values "${work}/missing-dlq.yaml"
+
+echo "==> api deployment"
+cat >"${work}/api.yaml" <<'EOF'
+components:
+  api: true
+api:
+  image:
+    repository: ghcr.io/trak-r/api
+    tag: abc123
+EOF
+render trakr "${work}/api-render.yaml" --values "${work}/api.yaml"
+python3 - "${work}/api-render.yaml" <<'PY'
+import sys
+text = open(sys.argv[1]).read()
+docs = text.split("\n---\n")
+
+def document(kind, name):
+    matches = [doc for doc in docs if f"kind: {kind}\n" in doc and f"\n  name: {name}\n" in doc]
+    if len(matches) != 1:
+        sys.exit(f"expected one {kind} {name}, found {len(matches)}")
+    return matches[0]
+
+deploy = document("Deployment", "trakr-api")
+service = document("Service", "trakr-api")
+secret = document("Secret", "trakr-api")
+for needle in (
+    'image: "ghcr.io/trak-r/api:abc123"',
+    "path: /health",
+    "readOnlyRootFilesystem: true",
+    "runAsUser: 65532",
+    "mountPath: /tmp",
+    "- name: DB_HOST\n              value: \"trakr-postgresql\"",
+    "- name: DB_USER",
+    "key: POSTGRES_USER",
+    "- name: DB_PASSWORD",
+    "key: POSTGRES_PASSWORD",
+    "- name: DB_NAME",
+    "key: POSTGRES_DB",
+    "- name: SECRET_KEY",
+    "key: SECRET_KEY",
+    '- name: DEBUG\n              value: "false"',
+    '- name: LOG_FILE\n              value: ""',
+    'value: "[\\"*\\"]"',
+    "name: trakr-ghcr",
+):
+    if needle not in deploy:
+        sys.exit(f"api deployment missing {needle!r}")
+if "REDIS_URL" in deploy or "celery" in deploy.lower():
+    sys.exit("api deployment includes celery or redis")
+if "command:" in deploy:
+    sys.exit("api deployment overrides the image command")
+if any("trakr-redis" in doc or "\n  name: redis\n" in doc for doc in docs):
+    sys.exit("redis rendered with the api")
+if "port: 80" not in service or "targetPort: http" not in service:
+    sys.exit("api service port is wrong")
+if "SECRET_KEY:" not in secret:
+    sys.exit("api secret is missing SECRET_KEY")
+if any("kind: Ingress" in doc and "\n  name: trakr-api\n" in doc for doc in docs):
+    sys.exit("api ingress rendered while disabled")
+print("api render assertions passed")
+PY
+
+echo "==> reject the api without postgres"
+cat >"${work}/api-no-postgres.yaml" <<'EOF'
+components:
+  api: true
+  postgresql: false
+api:
+  image:
+    tag: abc123
+EOF
+expect_fail "components.api requires components.postgresql" --values "${work}/api-no-postgres.yaml"
+
+echo "==> reject the api without an image tag"
+cat >"${work}/api-no-tag.yaml" <<'EOF'
+components:
+  api: true
+EOF
+expect_fail "api.image.tag is required when components.api is true" --values "${work}/api-no-tag.yaml"
 
 echo "==> provisioning script"
 extract_block "${work}/trakr.yaml" "provision.sh: |" "${work}/provision.sh"
