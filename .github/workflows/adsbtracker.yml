@@ -2,6 +2,10 @@ name: adsbtracker
 
 on:
   workflow_call:
+    secrets:
+      DEVOPS_TOKEN:
+        description: Token with contents write on Trak-R/devops. Used by deploy-dev on pushes to main.
+        required: false
 
 permissions:
   contents: read
@@ -11,6 +15,26 @@ jobs:
   pipeline:
     name: Test, push, and CVE scan
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.pipeline.outputs.image }}
     steps:
       - uses: actions/checkout@v5
-      - uses: $/pipelines/adsbtracker
+      - id: pipeline
+        uses: $/pipelines/adsbtracker
+
+  deploy-dev:
+    name: Update dev image tag
+    needs: pipeline
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-dev-helm-charts-trakr-values-dev
+      cancel-in-progress: false
+    steps:
+      - uses: $/pipelines/steps/deploy-dev
+        with:
+          token: ${{ secrets.DEVOPS_TOKEN }}
+          image: ${{ needs.pipeline.outputs.image }}
+          values: helm/charts/trakr/values-dev.yaml
+          tag-key: simulator.image.tag
+          repository-key: simulator.image.repository

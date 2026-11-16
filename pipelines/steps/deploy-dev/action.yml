@@ -1,0 +1,196 @@
+name: Deploy dev
+description: Commit one image tag into a values file on the dev branch of a Git repository.
+
+inputs:
+  token:
+    description: Token with contents write on the values repository.
+    required: true
+  image:
+    description: Pushed image reference, including the tag. Example ghcr.io/owner/name:sha.
+    required: true
+  values:
+    description: Values file to update, relative to the values repository root.
+    required: true
+  tag-key:
+    description: YAML path of the tag to replace. Example simulator.image.tag.
+    required: true
+  repository-key:
+    description: YAML path of the image repository. When set, the step fails if it differs from the pushed image name.
+    required: false
+    default: ""
+  repository:
+    description: Repository that holds the values file.
+    required: false
+    default: Trak-R/devops
+  ref:
+    description: Branch to update.
+    required: false
+    default: main
+
+runs:
+  using: composite
+  steps:
+    - name: Require token
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.token }}
+        REPOSITORY: ${{ inputs.repository }}
+        REF: ${{ inputs.ref }}
+      run: |
+        set -euo pipefail
+        if [[ -z "${TOKEN}" ]]; then
+          echo "token is empty. Pass a fine-grained PAT with contents write on ${REPOSITORY}. The token must be allowed to push to ${REF}."
+          exit 1
+        fi
+
+    - name: Check out values repository
+      uses: actions/checkout@v5
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.ref }}
+        token: ${{ inputs.token }}
+        path: deploy-dev
+        persist-credentials: true
+
+    - name: Update image tag
+      shell: bash
+      working-directory: deploy-dev
+      env:
+        IMAGE: ${{ inputs.image }}
+        VALUES: ${{ inputs.values }}
+        TAG_KEY: ${{ inputs.tag-key }}
+        REPOSITORY_KEY: ${{ inputs.repository-key }}
+        REF: ${{ inputs.ref }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "${IMAGE}" || "${IMAGE}" != *:* ]]; then
+          echo "image must be name:tag."
+          exit 1
+        fi
+        image_name="${IMAGE%:*}"
+        image_tag="${IMAGE##*:}"
+        if [[ -z "${image_name}" || -z "${image_tag}" ]]; then
+          echo "image must be name:tag."
+          exit 1
+        fi
+        if [[ ! "${image_tag}" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+          echo "image tag is not a valid Docker tag."
+          exit 1
+        fi
+        if [[ "${VALUES}" == /* || "${VALUES}" == *..* || -z "${VALUES}" ]]; then
+          echo "values path must stay inside the repository."
+          exit 1
+        fi
+        if [[ "${REF}" == *..* || "${REF}" == -* || ! "${REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+          echo "ref is not a branch name."
+          exit 1
+        fi
+
+        yaml_path() {
+          local key="$1"
+          if [[ "${key}" != .* ]]; then
+            key=".${key}"
+          fi
+          if [[ ! "${key}" =~ ^\.[A-Za-z_][A-Za-z0-9_-]*(\.[A-Za-z_][A-Za-z0-9_-]*)*$ ]]; then
+            echo "invalid YAML path: ${1}" >&2
+            exit 1
+          fi
+          printf '%s' "${key}"
+        }
+
+        tag_path="$(yaml_path "${TAG_KEY}")" || exit 1
+        if [[ ! -f "${VALUES}" ]]; then
+          echo "Values file not found: ${VALUES}"
+          exit 1
+        fi
+
+        case "$(uname -m)" in
+          x86_64) yq_arch=amd64 ;;
+          aarch64|arm64) yq_arch=arm64 ;;
+          *)
+            echo "unsupported architecture: $(uname -m)"
+            exit 1
+            ;;
+        esac
+        yq_bin="${RUNNER_TEMP}/yq"
+        curl -fsSL -o "${yq_bin}" "https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${yq_arch}"
+        chmod +x "${yq_bin}"
+
+        tag_type="$("${yq_bin}" -r "${tag_path} | type" "${VALUES}")" || exit 1
+        if [[ "${tag_type}" != "!!str" ]]; then
+          echo "${TAG_KEY} is ${tag_type} in ${VALUES}. Expected a string."
+          exit 1
+        fi
+        if [[ -n "${REPOSITORY_KEY}" ]]; then
+          repository_path="$(yaml_path "${REPOSITORY_KEY}")" || exit 1
+          current_repository="$("${yq_bin}" -r "${repository_path}" "${VALUES}")" || exit 1
+          if [[ "${current_repository}" != "${image_name}" ]]; then
+            echo "${REPOSITORY_KEY} is ${current_repository}. The pushed image is ${image_name}."
+            exit 1
+          fi
+        fi
+
+        current_tag="$("${yq_bin}" -r "${tag_path}" "${VALUES}")" || exit 1
+        if [[ "${current_tag}" == "${image_tag}" ]]; then
+          echo "${TAG_KEY} is already ${image_tag}."
+          exit 0
+        fi
+
+        line_no="$("${yq_bin}" "${tag_path} | line" "${VALUES}")" || exit 1
+        leaf="${tag_path##*.}"
+        python3 - "${VALUES}" "${line_no}" "${image_tag}" "${leaf}" <<'PY'
+        import pathlib, re, sys
+
+        path, line_no_s, new_tag, leaf = sys.argv[1:5]
+        line_no = int(line_no_s)
+        file = pathlib.Path(path)
+        lines = file.read_text().splitlines(keepends=True)
+        if line_no < 1 or line_no > len(lines):
+            sys.exit(f"tag line {line_no} is outside {path}")
+        raw = lines[line_no - 1]
+        newline = ""
+        body = raw
+        if raw.endswith("\r\n"):
+            body, newline = raw[:-2], "\r\n"
+        elif raw.endswith("\n"):
+            body, newline = raw[:-1], "\n"
+        match = re.match(r"^(\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:\s*)(.*)$", body)
+        if not match or match.group(2) != leaf:
+            sys.exit(f"line {line_no} is not {leaf}: {body!r}")
+        indent, key, separator, rest = match.groups()
+        comment = ""
+        comment_match = re.match(r"^(.*?)(\s+#.*)$", rest)
+        if comment_match:
+            rest, comment = comment_match.groups()
+        value = rest.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            written = f"{value[0]}{new_tag}{value[-1]}"
+        else:
+            written = new_tag
+        lines[line_no - 1] = f"{indent}{key}{separator}{written}{comment}{newline}"
+        file.write_text("".join(lines))
+        PY
+
+        git add -- "${VALUES}"
+        if git diff --cached --quiet -- "${VALUES}"; then
+          echo "${TAG_KEY} is already ${image_tag}."
+          exit 0
+        fi
+        expected="$(printf '1\t1\t%s' "${VALUES}")"
+        stats="$(git diff --cached --numstat -- "${VALUES}")"
+        if [[ "${stats}" != "${expected}" ]]; then
+          echo "expected only the tag line in ${VALUES} to change."
+          git diff --cached -- "${VALUES}"
+          exit 1
+        fi
+
+        if [[ "${tag_path}" == ".simulator.image.tag" ]]; then
+          message="Bump simulator.image.tag to ${image_tag}"
+        else
+          message="Update ${VALUES} ${TAG_KEY} to ${image_tag}"
+        fi
+        git -c user.name='github-actions[bot]' \
+          -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+          commit -m "${message}"
+        git push origin "HEAD:refs/heads/${REF}"

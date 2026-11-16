@@ -13,6 +13,7 @@ Reusable GitHub Actions composite steps. Workflows in this repository call them 
 | `sonarqube` | Scan the workspace and enforce the SonarQube quality gate |
 | `container-push` | Build an image and push it to GHCR, tagged with the commit SHA |
 | `cve-scan` | Scan a GHCR image for fixed high and critical CVEs |
+| `deploy-dev` | Commit one image tag into a values file |
 
 `helm-deploy` does not log into a cluster. The workflow configures kubeconfig first.
 
@@ -20,9 +21,15 @@ Reusable GitHub Actions composite steps. Workflows in this repository call them 
 
 `container-push` uses `docker/login-action` and `docker/build-push-action`, the actions GitHub documents for publishing to GHCR. It pushes `ghcr.io/<owner>/<repo>:<commit sha>`. On a push to `main`, that SHA is the merge commit. The workflow token needs `packages: write`. The Security workflow publishes only when a `Dockerfile` is present, then scans that image.
 
+`deploy-dev` checks out a values repository with a token and sets one image tag. It commits and pushes when the tag changes. Installing the chart stays on the Helm workflow.
+
 ## adsbtracker
 
 `pipelines/adsbtracker` installs .NET SDK 9.0.304 and runs `dotnet test` on `src/BaseStationReader.sln` first. A failed test stops the job before `container-push` and `cve-scan`. The Dockerfile is `docker/Dockerfile.simulator` and the build context is the repository root. The image is BaseStationReader.Simulator, published as `ghcr.io/<owner>/<repo>:<commit sha>`, lowercased. Every call publishes an image, including pull requests. The tag is the caller commit SHA.
+
+On a push to `main`, after the image push and the CVE scan succeed, the `deploy-dev` job sets `simulator.image.tag` in `helm/charts/trakr/values-dev.yaml` to the merge commit SHA and pushes the commit to `main` on `Trak-R/devops`. The job changes that tag only. `components.simulator` stays as it is in the file. The job runs with concurrency group `deploy-dev-helm-charts-trakr-values-dev` and `cancel-in-progress: false`, so two merges update the file one after another. A failed test, image push, or CVE scan skips the job.
+
+The caller passes `DEVOPS_TOKEN`, a fine-grained PAT with contents write on `Trak-R/devops`. The token must be allowed to push to `main`. Pull requests can omit the secret. A push to `main` with an empty token fails `deploy-dev`.
 
 The adsbtracker repository calls `.github/workflows/adsbtracker.yml`. The caller must grant `contents: read` and `packages: write`. A called workflow cannot raise those permissions.
 
@@ -38,6 +45,8 @@ permissions:
 jobs:
   ci:
     uses: Trak-R/devops/.github/workflows/adsbtracker.yml@main
+    secrets:
+      DEVOPS_TOKEN: ${{ secrets.DEVOPS_TOKEN }}
 ```
 
 If this repository is private, its Actions access policy must allow the adsbtracker repository to call the workflow. Pull requests from forks do not receive secrets or `packages: write`.
