@@ -1,0 +1,16 @@
+name: api
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pipeline:
+    name: Test, push, and CVE scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: $/pipelines/api

@@ -41,3 +41,25 @@ jobs:
 ```
 
 If this repository is private, its Actions access policy must allow the adsbtracker repository to call the workflow. Pull requests from forks do not receive secrets or `packages: write`.
+
+## api
+
+`pipelines/api` installs uv and Python 3.12, syncs the lockfile with `uv sync --frozen --all-packages`, then runs `uv run pytest`, `uv run ruff check .`, and `uv run ruff format --check .`. A failed check stops the job before `container-push` and `cve-scan`. The Dockerfile is `apps/api/Dockerfile` and the build context is the repository root. The image is the API, published as `ghcr.io/<owner>/<repo>:<commit sha>`, lowercased. Celery worker and beat use that same image. The persistence worker and anomaly detector are not published. Every call publishes an image, including pull requests. The tag is the caller commit SHA.
+
+The api repository calls `.github/workflows/api.yml`. The caller must grant `contents: read` and `packages: write`. A called workflow cannot raise those permissions.
+
+```yaml
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  ci:
+    uses: Trak-R/devops/.github/workflows/api.yml@main
+```
+
+If this repository is private, its Actions access policy must allow the api repository to call the workflow. Pull requests from forks do not receive secrets or `packages: write`.
