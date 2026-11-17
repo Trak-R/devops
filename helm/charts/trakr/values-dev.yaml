@@ -9,6 +9,8 @@ ingress:
   host: trakr.vibeify.co
 
 postgresql:
+  auth:
+    password: "password"
   persistence:
     storageClass: openebs-lvmpv
 
