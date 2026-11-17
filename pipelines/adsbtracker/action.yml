@@ -1,5 +1,5 @@
 name: adsbtracker
-description: Test the BaseStation reader, push the simulator image, and fail on fixed high and critical CVEs.
+description: Test the BaseStation reader, push the simulator image, and scan for fixed high and critical CVEs.
 
 inputs:
   context:

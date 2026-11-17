@@ -1,5 +1,5 @@
 name: api
-description: Run pytest and ruff, push the API image, and fail on fixed high and critical CVEs.
+description: Run pytest and ruff, push the API image, and scan for fixed high and critical CVEs.
 
 inputs:
   context:
