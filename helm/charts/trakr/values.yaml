@@ -64,7 +64,7 @@ components:
   simulator: false
   # TrakR API. image.repository and image.tag are required when this is true.
   # components.postgresql must stay true. The pod sets LOG_FILE empty and logs to stdout.
-  api: false
+  api: true
 
 # Official Redpanda chart. One broker, in-cluster only, TLS off.
 # Console stays off here. Dev turns it on at https://trakr-redpanda.vibeify.co.

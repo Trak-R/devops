@@ -2,7 +2,7 @@ replicaCount: 0
 
 components:
   simulator: false
-  api: false
+  api: true
 
 ingress:
   enabled: false
