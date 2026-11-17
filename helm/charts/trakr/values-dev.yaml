@@ -53,7 +53,7 @@ connect:
 api:
   image:
     repository: ghcr.io/trak-r/api
-    tag: ""
+    tag: "b75004c0b1b39ccd910be7bab0c1f09867f7ecfe"
   ingress:
     enabled: true
     className: traefik
