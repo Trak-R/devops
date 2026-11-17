@@ -16,6 +16,7 @@ postgresql:
 
 pgadmin:
   auth:
+    enabled: false
     email: admin@vibeify.co
   ingress:
     enabled: true

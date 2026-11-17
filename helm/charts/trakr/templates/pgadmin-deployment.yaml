@@ -90,6 +90,12 @@ spec:
               value: "8080"
             - name: PGADMIN_LISTEN_ADDRESS
               value: 0.0.0.0
+            {{- if eq (toString .Values.pgadmin.auth.enabled) "false" }}
+            - name: PGADMIN_CONFIG_SERVER_MODE
+              value: "False"
+            - name: PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED
+              value: "False"
+            {{- end }}
             {{- if .Values.components.postgresql }}
             - name: PGADMIN_REPLACE_SERVERS_ON_STARTUP
               value: "True"

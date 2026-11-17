@@ -304,6 +304,8 @@ pgadmin:
     tag: "9.19.0"
     pullPolicy: IfNotPresent
   auth:
+    # false runs desktop mode with no login and no master password.
+    enabled: true
     email: admin@example.com
     password: ""
     existingSecret: ""
