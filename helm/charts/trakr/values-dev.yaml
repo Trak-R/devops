@@ -60,4 +60,4 @@ api:
   ingress:
     enabled: true
     className: traefik
-    host: trakr-api.vibeify.co
+    host: trakr.vibeify.co/api/v1
