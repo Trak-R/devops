@@ -241,8 +241,25 @@ for needle in (
         sys.exit(f"api deployment missing {needle!r}")
 if "REDIS_URL" in deploy or "celery" in deploy.lower():
     sys.exit("api deployment includes celery or redis")
-if "command:" in deploy:
-    sys.exit("api deployment overrides the image command")
+init, sep, api = deploy.partition("\n      containers:\n")
+if not sep or "name: migrate" not in init:
+    sys.exit("api deployment is missing the migrate init container")
+for needle in (
+    "command:",
+    "- uv",
+    "- run",
+    "- alembic",
+    "- -c",
+    "- apps/api/alembic.ini",
+    "- upgrade",
+    "- head",
+    '- name: HOME\n              value: /tmp',
+    '- name: UV_CACHE_DIR\n              value: /tmp',
+):
+    if needle not in init:
+        sys.exit(f"migrate init container missing {needle!r}")
+if "command:" in api:
+    sys.exit("api container overrides the image command")
 if any("trakr-redis" in doc or "\n  name: redis\n" in doc for doc in docs):
     sys.exit("redis rendered with the api")
 if "port: 80" not in service or "targetPort: http" not in service:

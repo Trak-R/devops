@@ -325,6 +325,8 @@ pgadmin:
 
 # TrakR API. The image command is uvicorn on port 8000. Health is GET /health.
 # image.repository and image.tag are required when components.api is true.
+# Before the API starts, the migrate init container runs
+# `uv run alembic -c apps/api/alembic.ini upgrade head`.
 # The process must skip logs/app.log when LOG_FILE is empty. The chart sets that
 # variable to an empty string. Pods use the chart security context: UID 65532,
 # a read-only root filesystem, and an emptyDir at /tmp.
