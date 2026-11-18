@@ -46,18 +46,12 @@ spec:
           image: {{ printf "%s:%s" (required "api.image.repository is required when components.api is true" .Values.api.image.repository) (required "api.image.tag is required when components.api is true" .Values.api.image.tag) | quote }}
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           command:
-            - uv
-            - run
             - alembic
             - -c
-            - apps/api/alembic.ini
+            - /app/apps/api/alembic.ini
             - upgrade
             - head
           env:
-            - name: HOME
-              value: /tmp
-            - name: UV_CACHE_DIR
-              value: /tmp
             {{- include "trakr.api.env" . | nindent 12 }}
           {{- if .Values.securityContext.readOnlyRootFilesystem }}
           volumeMounts:

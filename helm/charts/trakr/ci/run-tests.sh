@@ -246,15 +246,11 @@ if not sep or "name: migrate" not in init:
     sys.exit("api deployment is missing the migrate init container")
 for needle in (
     "command:",
-    "- uv",
-    "- run",
     "- alembic",
     "- -c",
-    "- apps/api/alembic.ini",
+    "- /app/apps/api/alembic.ini",
     "- upgrade",
     "- head",
-    '- name: HOME\n              value: /tmp',
-    '- name: UV_CACHE_DIR\n              value: /tmp',
 ):
     if needle not in init:
         sys.exit(f"migrate init container missing {needle!r}")
