@@ -57,5 +57,3 @@ runs:
         file: ${{ github.workspace }}/${{ inputs.dockerfile }}
         push: true
         tags: ${{ steps.image.outputs.ref }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
