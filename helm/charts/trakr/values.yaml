@@ -96,147 +96,47 @@ redpanda:
 # Official Redpanda Connect chart.
 # nameOverride keeps the Service at <release>-connect. The chart's own default
 # name is redpanda-connect.
-# The chart renders config with Helm tpl in the connect subchart, so the
-# fields under connect.adsb are visible as .Values.adsb inside config.
-# Leave adsb.enabled false where there is no BaseStation feed. The placeholder
-# pipeline keeps the pod up. When adsb.enabled is true, Connect opens a TCP
-# client to the simulator Service for this release (<fullname>-simulator:30003)
-# and writes each valid MSG line as JSON to adsb.topic. The Kafka key is the
-# uppercase ICAO24 address. Lines that are not MSG records, or that have no
-# valid ICAO24, are written as JSON to adsb.deadLetterTopic. Set adsb.address
-# to use a different feed.
+# The pipeline is baked into connect.image. The chart mounts <release>-connect-env
+# at /connect/runtime. The entrypoint reads ADSB_ADDRESS, ADSB_BROKER, ADSB_TOPIC,
+# ADSB_DEAD_LETTER_TOPIC, and ADSB_ENABLED from that directory. An empty
+# adsb.address becomes <fullname>-simulator:<simulator.service.port>.
+# Leave adsb.enabled false where there is no BaseStation feed. The image then
+# runs /connect/placeholder.yaml. When adsb.enabled is true, Connect opens a TCP
+# client to ADSB_ADDRESS and writes each valid MSG line as JSON to adsb.topic.
+# The Kafka key is the uppercase ICAO24 address. Lines that are not MSG records,
+# or that have no valid ICAO24, are written as JSON to adsb.deadLetterTopic.
+# args must be non-empty. An empty args list makes the Connect chart append
+# -c /redpanda-connect.yaml, which this image does not use.
+# connect.image.tag is the commit SHA from the connect workflow. "unset" is not
+# a published tag. The Connect chart uses its appVersion when the tag is empty.
 connect:
   nameOverride: connect
+  image:
+    repository: ghcr.io/trak-r/connect
+    tag: "unset"
+    pullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: trakr-ghcr
+  command:
+    - /connect/entrypoint.sh
+  args:
+    - run
+  extraVolumes:
+    - name: runtime
+      configMap:
+        name: '{{ printf "%s-connect-env" .Release.Name }}'
+  extraVolumeMounts:
+    - name: runtime
+      mountPath: /connect/runtime
+      readOnly: true
+  commonAnnotations:
+    checksum/adsb-env: '{{ printf "%s|%s|%s|%s|%s|%v" .Release.Name (.Values.adsb.address | default "") .Values.adsb.broker .Values.adsb.topic .Values.adsb.deadLetterTopic .Values.adsb.enabled | sha256sum }}'
   adsb:
     enabled: false
     address: ""
     topic: adsb.basestation
     deadLetterTopic: adsb.basestation.dlq
     broker: trakr-redpanda:9093
-  config: |
-    {{- if .Values.adsb.enabled }}
-    {{- $fullname := .Release.Name -}}
-    {{- if not (contains "trakr" .Release.Name) -}}
-    {{- $fullname = printf "%s-trakr" .Release.Name -}}
-    {{- end -}}
-    input:
-      label: adsb_basestation_in
-      socket:
-        network: tcp
-        address: {{ .Values.adsb.address | default (printf "%s-simulator:30003" $fullname) | quote }}
-        scanner:
-          lines:
-            omit_empty: true
-    pipeline:
-      processors:
-        - label: adsb_normalize
-          mapping: |
-            # SBS MSG fields. HexIdent is index 4. Index 5 is FlightID and is not the key.
-            # Empty and unparseable values are omitted. Explicit 0 and false stay.
-            let line = content().string()
-            let fields = $line.split(",").catch([])
-            let message_type = $fields.index(0).catch("").or("").string().trim()
-            let tx_code = $fields.index(1).catch("").or("").string().trim()
-            let candidate = $fields.index(4).catch("").or("").string().trim().uppercase().catch("")
-            let valid = $message_type == "MSG" && $candidate.re_match("^[0-9A-F]{6}$").catch(false)
-            let reason = if $message_type != "MSG" { "not_msg" } else { "invalid_icao" }
-            let generated_date = $fields.index(6).catch("").or("").string().trim()
-            let generated_time = $fields.index(7).catch("").or("").string().trim()
-            let generated = if $generated_date.re_match("^[0-9]{4}/[0-9]{2}/[0-9]{2}$").catch(false) && $generated_time.re_match("^[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}$").catch(false) { $generated_date.replace_all("/", "-") + "T" + $generated_time } else { "" }
-            let callsign = $fields.index(10).catch("").or("").string().trim()
-            let altitude = $fields.index(11).catch("").or("").string().trim().number().catch(null)
-            let ground_speed = $fields.index(12).catch("").or("").string().trim().number().catch(null)
-            let track = $fields.index(13).catch("").or("").string().trim().number().catch(null)
-            let latitude = $fields.index(14).catch("").or("").string().trim().number().catch(null)
-            let longitude = $fields.index(15).catch("").or("").string().trim().number().catch(null)
-            let vertical_rate = $fields.index(16).catch("").or("").string().trim().number().catch(null)
-            let squawk = $fields.index(17).catch("").or("").string().trim()
-            let alert_raw = $fields.index(18).catch("").or("").string().trim()
-            let emergency_raw = $fields.index(19).catch("").or("").string().trim()
-            let spi_raw = $fields.index(20).catch("").or("").string().trim()
-            let ground_raw = $fields.index(21).catch("").or("").string().trim()
-            let alert = if $alert_raw == "1" { true } else if $alert_raw == "0" { false } else { null }
-            let emergency = if $emergency_raw == "1" { true } else if $emergency_raw == "0" { false } else { null }
-            let spi = if $spi_raw == "1" { true } else if $spi_raw == "0" { false } else { null }
-            let is_on_ground = if $ground_raw == "1" { true } else if $ground_raw == "0" { false } else { null }
-            let transmission_type = match $tx_code {
-              "1" => "Identification",
-              "2" => "SurfacePosition",
-              "3" => "AirbornePosition",
-              "4" => "AirborneVelocity",
-              "5" => "SurveillanceAlt",
-              "6" => "SurveillanceId",
-              "7" => "AirToAir",
-              "8" => "AllCallReply",
-              _ => "Unknown"
-            }
-
-            meta kafka_key = if $valid { $candidate } else { "" }
-            # An empty string deletes the metadata key. Valid lines leave dead_letter unset.
-            meta dead_letter = if $valid { "" } else { $reason }
-
-            root = if !$valid {
-              {
-                "reason": $reason,
-                "line": $line
-              }
-            } else {
-              {}
-            }
-            root.messageType = if $valid { "MSG" } else { deleted() }
-            root.transmissionType = if $valid { $transmission_type } else { deleted() }
-            root.address = if $valid { $candidate } else { deleted() }
-            root.generated = if $valid && $generated != "" { $generated } else { deleted() }
-            root.callsign = if $valid && $callsign != "" { $callsign } else { deleted() }
-            root.altitude = if $valid && $altitude != null { $altitude } else { deleted() }
-            root.groundSpeed = if $valid && $ground_speed != null { $ground_speed } else { deleted() }
-            root.track = if $valid && $track != null { $track } else { deleted() }
-            root.latitude = if $valid && $latitude != null { $latitude } else { deleted() }
-            root.longitude = if $valid && $longitude != null { $longitude } else { deleted() }
-            root.verticalRate = if $valid && $vertical_rate != null { $vertical_rate } else { deleted() }
-            root.squawk = if $valid && $squawk != "" { $squawk } else { deleted() }
-            root.alert = if $valid && $alert != null { $alert } else { deleted() }
-            root.emergency = if $valid && $emergency != null { $emergency } else { deleted() }
-            root.spi = if $valid && $spi != null { $spi } else { deleted() }
-            root.isOnGround = if $valid && $is_on_ground != null { $is_on_ground } else { deleted() }
-    output:
-      switch:
-        cases:
-          # Valid lines have no dead_letter key. Comparing with "" does not match null.
-          - check: 'meta("dead_letter") == null'
-            output:
-              label: adsb_basestation_out
-              redpanda:
-                seed_brokers:
-                  - {{ .Values.adsb.broker | quote }}
-                topic: {{ .Values.adsb.topic | quote }}
-                allow_auto_topic_creation: true
-                key: ${! meta("kafka_key").or("") }
-                partitioner: murmur2_hash
-                idempotent_write: true
-                max_in_flight_requests: 1
-                acks: all
-          - output:
-              label: adsb_basestation_dlq
-              redpanda:
-                seed_brokers:
-                  - {{ .Values.adsb.broker | quote }}
-                topic: {{ .Values.adsb.deadLetterTopic | quote }}
-                allow_auto_topic_creation: true
-                key: ${! meta("kafka_key").or("") }
-                partitioner: murmur2_hash
-                idempotent_write: true
-                max_in_flight_requests: 1
-                acks: all
-    {{- else }}
-    input:
-      generate:
-        interval: 1s
-        count: 0
-        mapping: root.message = "trakr connect placeholder"
-    output:
-      stdout: {}
-    {{- end }}
 
 # Single Postgres instance using the official image. PostgreSQL 17 keeps
 # PGDATA at /var/lib/postgresql/data.

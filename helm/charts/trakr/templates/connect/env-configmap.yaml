@@ -1,0 +1,15 @@
+{{- if .Values.components.connect }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "trakr.connect.envConfigMap" . }}
+  labels:
+    {{- include "trakr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: connect
+data:
+  ADSB_ADDRESS: {{ include "trakr.connect.address" . | quote }}
+  ADSB_BROKER: {{ .Values.connect.adsb.broker | quote }}
+  ADSB_TOPIC: {{ .Values.connect.adsb.topic | quote }}
+  ADSB_DEAD_LETTER_TOPIC: {{ .Values.connect.adsb.deadLetterTopic | quote }}
+  ADSB_ENABLED: {{ .Values.connect.adsb.enabled | quote }}
+{{- end }}

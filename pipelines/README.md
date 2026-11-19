@@ -78,3 +78,11 @@ jobs:
 ```
 
 If this repository is private, its Actions access policy must allow the api repository to call the workflow. Pull requests from forks do not receive secrets or `packages: write`.
+
+## connect
+
+`pipelines/connect` runs `connect/test.sh`, which downloads Redpanda Connect 4.115.1 and runs `redpanda-connect test` on `connect/adsb.yaml`. A failed test stops the job before `container-push` and `cve-scan`. The Dockerfile is `connect/Dockerfile` and the build context is `connect/`. The image is published as `ghcr.io/trak-r/connect:<commit sha>`. It is the upstream Connect binary plus the ADS-B pipeline, the placeholder pipeline, and the entrypoint. Every call publishes an image, including pull requests. The tag is the caller commit SHA.
+
+Pushing the image does not update the chart. `deploy-dev` runs only from a manual dispatch, and only when that dispatch is on `main`. A dispatch from any other branch fails before it writes the values file. The job sets `connect.image.tag` in `helm/charts/trakr/values-dev.yaml` to the `main` commit SHA and pushes that commit to `main` on `Trak-R/devops`. The job changes that tag only. `connect.image.repository` stays `ghcr.io/trak-r/connect`. The job runs with concurrency group `deploy-dev-helm-charts-trakr-values-dev` and `cancel-in-progress: false`, so a Connect dispatch, an API merge, and a simulator merge update the file one after another.
+
+The workflow passes `DEVOPS_TOKEN`, a fine-grained PAT with contents write on `Trak-R/devops`. The token must be allowed to push to `main`. A dispatch on `main` with an empty token fails `deploy-dev`.

@@ -1,0 +1,7 @@
+input:
+  generate:
+    interval: 1s
+    count: 0
+    mapping: root.message = "trakr connect placeholder"
+output:
+  stdout: {}

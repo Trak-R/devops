@@ -1,4 +1,4 @@
-# Redpanda Connect unit tests for the rendered ADS-B pipeline.
+# Redpanda Connect unit tests for connect/adsb.yaml.
 # HexIdent is field index 4. Index 5 is FlightID and must not become the key.
 # Valid MSG lines become JSON. Everything else is a dead-letter envelope.
 tests:

@@ -1,0 +1,56 @@
+name: connect
+
+on:
+  pull_request:
+    paths:
+      - "connect/**"
+      - "pipelines/connect/**"
+      - ".github/workflows/connect.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "connect/**"
+      - "pipelines/connect/**"
+      - ".github/workflows/connect.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pipeline:
+    name: Test, push, and CVE scan
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.pipeline.outputs.image }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: pipeline
+        uses: $/pipelines/connect
+
+  deploy-dev:
+    name: Update dev image tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-dev-helm-charts-trakr-values-dev
+      cancel-in-progress: false
+    steps:
+      - name: Require main
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Connect deploy runs only from main. This run is ${GITHUB_REF}."
+            exit 1
+          fi
+      - uses: $/pipelines/steps/deploy-dev
+        with:
+          token: ${{ secrets.DEVOPS_TOKEN }}
+          image: ghcr.io/trak-r/connect:${{ github.sha }}
+          values: helm/charts/trakr/values-dev.yaml
+          tag-key: connect.image.tag
+          repository-key: connect.image.repository

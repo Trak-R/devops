@@ -1,0 +1,41 @@
+name: connect
+description: Test the ADS-B pipeline, push the Connect image, and scan for fixed high and critical CVEs.
+
+inputs:
+  context:
+    description: Build context, relative to the repository root.
+    required: false
+    default: connect
+  dockerfile:
+    description: Dockerfile path, relative to the repository root.
+    required: false
+    default: connect/Dockerfile
+  image:
+    description: Image name without a tag.
+    required: false
+    default: ghcr.io/trak-r/connect
+
+outputs:
+  image:
+    description: Pushed image reference, including the commit SHA tag.
+    value: ${{ steps.push.outputs.image }}
+
+runs:
+  using: composite
+  steps:
+    - name: Test ADS-B pipeline
+      shell: bash
+      run: ./connect/test.sh
+
+    - name: Build and push image
+      id: push
+      uses: $/pipelines/steps/container-push
+      with:
+        context: ${{ inputs.context }}
+        dockerfile: ${{ inputs.dockerfile }}
+        image: ${{ inputs.image }}
+
+    - name: CVE scan
+      uses: $/pipelines/steps/cve-scan
+      with:
+        image: ${{ steps.push.outputs.image }}

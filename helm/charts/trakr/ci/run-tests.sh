@@ -73,26 +73,21 @@ require(trakr, "name: trakr-topics", "topic configmap")
 require(trakr, 'name: trakr-topics', "init volume")
 require(dev, "name: dev-trakr-topics", "release fullname")
 require(trakr, 'provision_topic "adsb.basestation" "3" "1"', "default topic")
-require(adsb, "partitioner: murmur2_hash", "partitioner")
-require(adsb, 'key: ${! meta("kafka_key").or("") }', "record key")
-require(adsb, "idempotent_write: true", "idempotent producer")
-require(adsb, "max_in_flight_requests: 1", "ordered produce")
-require(adsb, "acks: all", "acks")
-require(adsb, "allow_auto_topic_creation: true", "auto create")
-require(adsb, "$fields.index(4)", "icao field")
-require(adsb, 're_match("^[0-9A-F]{6}$")', "icao check")
-require(adsb, "meta kafka_key = if $valid", "icao metadata")
-require(adsb, "switch:", "output switch")
-require(adsb, 'meta("dead_letter") == null', "main topic gate")
-require(adsb, 'topic: "adsb.basestation"', "normalized topic")
-require(adsb, 'topic: "adsb.basestation.dlq"', "dead letter topic")
-if "kafka_key" in trakr.split("redpanda-connect.yaml:")[1].split("kind:")[0]:
-    # The placeholder pipeline is in the base render. The topic script also
-    # has no kafka_key. Search only the connect config block above.
-    pass
+require(trakr, "name: trakr-connect-env", "connect env configmap")
+require(trakr, 'ADSB_ADDRESS: "trakr-simulator:30003"', "default feed")
+require(trakr, 'ADSB_BROKER: "trakr-redpanda:9093"', "default broker")
+require(trakr, 'ADSB_TOPIC: "adsb.basestation"', "default topic env")
+require(trakr, 'ADSB_DEAD_LETTER_TOPIC: "adsb.basestation.dlq"', "default dlq env")
+require(trakr, 'ADSB_ENABLED: "false"', "adsb disabled")
+require(trakr, 'image: "ghcr.io/trak-r/connect:unset"', "connect image")
+require(trakr, "- /connect/entrypoint.sh", "connect entrypoint")
+require(trakr, "name: trakr-connect-env", "runtime volume")
+require(dev, "name: dev-connect-env", "release env configmap")
+require(dev, 'ADSB_ADDRESS: "dev-trakr-simulator:30003"', "release feed")
+require(adsb, 'ADSB_ENABLED: "false"', "dev feed disabled")
 placeholder = trakr.split("redpanda-connect.yaml: |", 1)[1].split("\n---", 1)[0]
-if "kafka_key" in placeholder or "murmur2_hash" in placeholder:
-    sys.exit("placeholder pipeline should not publish ADS-B records")
+if "kafka_key" in placeholder or "murmur2_hash" in placeholder or "${ADSB_" in placeholder:
+    sys.exit("chart config should not contain the ADS-B pipeline")
 if "trakr.dev/topics-checksum:" not in adsb:
     sys.exit("topics checksum annotation missing")
 if "name: trakr-api" in trakr or "name: trakr-api" in adsb:
@@ -406,24 +401,6 @@ print("topic config assertion passed")
 PY
 
 echo "==> connect pipeline"
-connect_bin="${CONNECT_BIN:-}"
-if [[ -z "${connect_bin}" ]]; then
-  version="4.115.1"
-  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  arch="$(uname -m)"
-  case "${arch}" in
-    x86_64) arch=amd64 ;;
-    aarch64|arm64) arch=arm64 ;;
-  esac
-  tarball="${work}/connect.tar.gz"
-  url="https://github.com/redpanda-data/connect/releases/download/v${version}/redpanda-connect_${version}_${os}_${arch}.tar.gz"
-  curl -fsSL "${url}" -o "${tarball}"
-  tar -xzf "${tarball}" -C "${work}"
-  connect_bin="${work}/redpanda-connect"
-  chmod +x "${connect_bin}"
-fi
-extract_block "${work}/adsb.yaml" "redpanda-connect.yaml: |" "${work}/connect.yaml"
-cp "${chart}/ci/adsb_pipeline_test.yaml" "${work}/connect_benthos_test.yaml"
-"${connect_bin}" test "${work}/connect.yaml"
+"${root}/connect/test.sh"
 
 echo "trakr chart tests passed"

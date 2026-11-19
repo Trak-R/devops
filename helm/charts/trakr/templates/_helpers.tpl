@@ -153,6 +153,18 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- printf "%s-simulator" (include "trakr.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{- define "trakr.connect.envConfigMap" -}}
+{{- printf "%s-connect-env" .Release.Name }}
+{{- end }}
+
+{{- define "trakr.connect.address" -}}
+{{- if .Values.connect.adsb.address -}}
+{{- .Values.connect.adsb.address -}}
+{{- else -}}
+{{- printf "%s:%v" (include "trakr.simulator.fullname" .) .Values.simulator.service.port -}}
+{{- end -}}
+{{- end }}
+
 {{- define "trakr.simulator.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "trakr.simulator.fullname" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
