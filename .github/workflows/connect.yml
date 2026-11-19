@@ -22,7 +22,7 @@ permissions:
 jobs:
   pipeline:
     name: Test, push, and CVE scan
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.pipeline.outputs.image }}
@@ -33,7 +33,8 @@ jobs:
 
   deploy-dev:
     name: Update dev image tag
-    if: github.event_name == 'workflow_dispatch'
+    needs: pipeline
+    if: github.event_name == 'workflow_dispatch' && (needs.pipeline.result == 'success' || needs.pipeline.result == 'skipped')
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-dev-helm-charts-trakr-values-dev
@@ -50,7 +51,7 @@ jobs:
       - uses: $/pipelines/steps/deploy-dev
         with:
           token: ${{ secrets.DEVOPS_TOKEN }}
-          image: ghcr.io/trak-r/connect:${{ github.sha }}
+          image: ${{ needs.pipeline.outputs.image }}
           values: helm/charts/trakr/values-dev.yaml
           tag-key: connect.image.tag
           repository-key: connect.image.repository

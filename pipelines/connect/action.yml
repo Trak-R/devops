@@ -29,6 +29,7 @@ runs:
 
     - name: Build and push image
       id: push
+      if: github.ref == 'refs/heads/main'
       uses: $/pipelines/steps/container-push
       with:
         context: ${{ inputs.context }}
@@ -36,6 +37,7 @@ runs:
         image: ${{ inputs.image }}
 
     - name: CVE scan
+      if: github.ref == 'refs/heads/main'
       uses: $/pipelines/steps/cve-scan
       with:
         image: ${{ steps.push.outputs.image }}
