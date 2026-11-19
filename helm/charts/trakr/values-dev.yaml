@@ -51,7 +51,7 @@ simulator:
 connect:
   image:
     repository: ghcr.io/trak-r/connect
-    tag: "unset"
+    tag: "355e337a0bd5614bc3f4b9a6bf565ac2fbf0b6ba"
   adsb:
     enabled: false
 
